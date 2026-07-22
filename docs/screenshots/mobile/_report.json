@@ -1,0 +1,92 @@
+[
+  {
+    "name": "01-board-list",
+    "pageOverflow": 0,
+    "widestEl": null,
+    "widestPx": 0
+  },
+  {
+    "name": "02-nav-drawer",
+    "pageOverflow": 0,
+    "widestEl": null,
+    "widestPx": 0
+  },
+  {
+    "name": "03-board-kanban",
+    "pageOverflow": 0,
+    "widestEl": null,
+    "widestPx": 0
+  },
+  {
+    "name": "04-task-detail",
+    "pageOverflow": 0,
+    "widestEl": null,
+    "widestPx": 0
+  },
+  {
+    "name": "05-create-task",
+    "pageOverflow": 0,
+    "widestEl": null,
+    "widestPx": 0
+  },
+  {
+    "name": "06-search-open",
+    "pageOverflow": 0,
+    "widestEl": null,
+    "widestPx": 0
+  },
+  {
+    "name": "07-issues",
+    "pageOverflow": 0,
+    "widestEl": null,
+    "widestPx": 0
+  },
+  {
+    "name": "08-settings",
+    "pageOverflow": 0,
+    "widestEl": null,
+    "widestPx": 0
+  },
+  {
+    "name": "09-settings-members",
+    "pageOverflow": 0,
+    "widestEl": null,
+    "widestPx": 0
+  },
+  {
+    "name": "10-export",
+    "pageOverflow": 0,
+    "widestEl": null,
+    "widestPx": 0
+  },
+  {
+    "name": "11-my-work",
+    "pageOverflow": 0,
+    "widestEl": null,
+    "widestPx": 0
+  },
+  {
+    "name": "12-dashboard",
+    "pageOverflow": 0,
+    "widestEl": null,
+    "widestPx": 0
+  },
+  {
+    "name": "13-analytics",
+    "pageOverflow": 0,
+    "widestEl": "TABLE.w-full.text-sm",
+    "widestPx": 499
+  },
+  {
+    "name": "14-preferences",
+    "pageOverflow": 0,
+    "widestEl": null,
+    "widestPx": 0
+  },
+  {
+    "name": "15-help",
+    "pageOverflow": 0,
+    "widestEl": "TABLE.w-full.text-sm.border-collapse",
+    "widestPx": 458
+  }
+]

@@ -1,0 +1,71 @@
+COLLABORATION.md
+HANDOFF.md
+IDEAS.md
+PARITY.md
+tts_speak.py
+tts_debug.log
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# ── Node / Frontend ───────────────────────────────────────────────────────────
+node_modules/
+taskflow-frontend/dist/
+taskflow-frontend/.vite/
+*.tsbuildinfo
+
+# ── Stray root-level npm artifacts (ran npm install in wrong dir) ─────────────
+/package.json
+/package-lock.json
+
+# ── Reports / test artifacts (generated) ──────────────────────────────────────
+reports/
+taskflow-backend/reports/
+taskflow-frontend/reports/
+taskflow-frontend/playwright-report/
+taskflow-frontend/test-results/
+taskflow-frontend/tests/e2e/.e2e-state.json
+
+# ── Secrets ───────────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Docker local volumes ──────────────────────────────────────────────────────
+postgres_data/
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.idea/
+*.sw[op]
+*~
+.vscode/settings.json
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Generated preview / scratch HTML ─────────────────────────────────────────
+*-preview.html
+
+# ── Project docs / Claude ─────────────────────────────────────────────────────
+*.md
+!README.md
+.claude/
+# Windows reserved device name — a stray "nul" file breaks `git add`
+nul

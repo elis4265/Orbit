@@ -1,0 +1,170 @@
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+# ─── Backend ──────────────────────────────────────────────────────────────────
+# ⚠️  replicaCount > 1 is NOT safe yet: WS rooms live in-process.
+#     Broadcasting to multiple replicas requires Redis pub/sub fanout.
+backend:
+  replicaCount: 1
+  image:
+    repository: your-registry/taskflow-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  env:
+    jwtAlgorithm: HS256
+    accessTokenExpireMinutes: "15"
+    refreshTokenExpireDays: "7"
+    environment: production
+    debug: "false"
+    allowedOrigins: '["https://taskflow.example.com"]'
+    # baseUrl: inferred as https://<ingress.host> when empty
+    baseUrl: ""
+    # Google SSO login — empty hides the button
+    googleOauthClientId: ""
+    # GitHub Device Flow OAuth (git integration) — empty disables
+    githubOauthClientId: ""
+    # GitLab Device Flow OAuth (git integration) — empty disables
+    gitlabOauthClientId: ""
+    # Override for self-hosted GitLab
+    gitlabBaseUrl: "https://gitlab.com"
+    # Promoted to instance superuser at startup — empty = no /admin surface
+    orbitSuperuserEmail: ""
+    # "true" opts out of the outbound-webhook SSRF egress guard (LAN receivers)
+    webhookAllowPrivateIps: "false"
+
+# ─── Frontend ─────────────────────────────────────────────────────────────────
+# VITE_API_URL and VITE_HOCUSPOCUS_URL must be baked in at Docker build time;
+# see NOTES.txt for the exact build commands.
+frontend:
+  replicaCount: 1
+  image:
+    repository: your-registry/taskflow-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# ─── Hocuspocus ───────────────────────────────────────────────────────────────
+# ⚠️  Stateful: Yjs documents live in-memory. For replicaCount > 1 set
+#     service.sessionAffinity: ClientIP to pin clients to the same pod.
+hocuspocus:
+  replicaCount: 1
+  image:
+    repository: your-registry/taskflow-hocuspocus
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 1234
+    # Set sessionAffinity: ClientIP when running multiple replicas
+    sessionAffinity: None
+  ingress:
+    # Subdomain for the WebSocket collab service.
+    # Set VITE_HOCUSPOCUS_URL=wss://<host> when building the frontend image.
+    host: collab.taskflow.example.com
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# ─── Ingress ──────────────────────────────────────────────────────────────────
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  host: taskflow.example.com
+  tls: true
+
+# ─── Secrets ──────────────────────────────────────────────────────────────────
+# Never commit real values. Pass via --set or a sealed-secrets / vault provider.
+secrets:
+  # REQUIRED — openssl rand -hex 32
+  jwtSecretKey: ""
+  # REQUIRED — openssl rand -hex 16
+  hocuspocusInternalKey: ""
+  openaiApiKey: ""
+  brevoApiKey: ""
+  # Fernet key for stored VCS tokens — empty degrades git integration gracefully
+  encryptionKey: ""
+
+# ─── PostgreSQL (bitnami/postgresql) ──────────────────────────────────────────
+postgresql:
+  enabled: true
+  auth:
+    username: taskflow
+    # REQUIRED — set via --set postgresql.auth.password=<strong-password>
+    password: ""
+    database: taskflow
+  primary:
+    persistence:
+      size: 8Gi
+
+# Used when postgresql.enabled=false
+externalPostgresql:
+  url: ""  # postgresql+asyncpg://user:pass@host:5432/dbname
+
+# ─── Redis (bitnami/redis) ────────────────────────────────────────────────────
+redis:
+  enabled: true
+  auth:
+    enabled: false
+  master:
+    persistence:
+      size: 2Gi
+
+# Used when redis.enabled=false
+externalRedis:
+  url: ""  # redis://host:6379/0
+
+# ─── MinIO (bitnami/minio) ────────────────────────────────────────────────────
+minio:
+  enabled: true
+  auth:
+    rootUser: minioadmin
+    # REQUIRED — set via --set minio.auth.rootPassword=<strong-password>
+    rootPassword: ""
+  defaultBuckets: taskflow-attachments
+  persistence:
+    size: 20Gi
+
+# Used when minio.enabled=false (point at AWS S3, Cloudflare R2, etc.)
+externalS3:
+  endpoint: ""   # host:port, no scheme
+  accessKey: ""
+  secretKey: ""
+  bucket: taskflow-attachments
+  useSsl: "true"
+
+# ─── SMTP ─────────────────────────────────────────────────────────────────────
+smtp:
+  host: ""
+  port: "587"
+  from: noreply@taskflow.example.com

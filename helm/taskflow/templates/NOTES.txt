@@ -1,0 +1,72 @@
+╔══════════════════════════════════════════════════════════════╗
+║  TaskFlow {{ .Chart.AppVersion }} deployed to {{ .Release.Namespace | upper }}
+╚══════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  STEP 1 — BUILD & PUSH YOUR IMAGES (if not done yet)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  # Backend
+  docker build -t {{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }} ./taskflow-backend
+  docker push {{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}
+
+  # Frontend — API URL and Hocuspocus URL are baked in at build time
+  docker build \
+    --build-arg VITE_API_URL=https://{{ .Values.ingress.host }}/api/v1 \
+    --build-arg VITE_HOCUSPOCUS_URL=wss://{{ .Values.hocuspocus.ingress.host }} \
+    -t {{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }} \
+    ./taskflow-frontend
+  docker push {{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}
+
+  # Hocuspocus
+  docker build -t {{ .Values.hocuspocus.image.repository }}:{{ .Values.hocuspocus.image.tag }} ./hocuspocus
+  docker push {{ .Values.hocuspocus.image.repository }}:{{ .Values.hocuspocus.image.tag }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  STEP 2 — DNS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Point both records at your ingress LoadBalancer IP:
+
+    {{ .Values.ingress.host }}           → <ingress-lb-ip>
+    {{ .Values.hocuspocus.ingress.host }} → <ingress-lb-ip>
+
+  Get the LB IP:
+    kubectl get svc -n ingress-nginx ingress-nginx-controller \
+      -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ACCESS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{{- if .Values.ingress.enabled }}
+
+  App:       https://{{ .Values.ingress.host }}
+  API docs:  https://{{ .Values.ingress.host }}/docs
+  Collab WS: wss://{{ .Values.hocuspocus.ingress.host }}
+{{- else }}
+
+  Port-forward the frontend:
+    kubectl port-forward -n {{ .Release.Namespace }} \
+      svc/{{ include "taskflow.fullname" . }}-frontend 3000:80
+  Then open http://localhost:3000
+{{- end }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ⚠️  KNOWN SCALING LIMITATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  backend.replicaCount > 1:
+    WebSocket broadcast rooms live in-process. Multiple replicas
+    will NOT broadcast to clients on other pods. Requires Redis
+    pub/sub fanout (planned, not yet implemented).
+
+  hocuspocus.replicaCount > 1:
+    Yjs documents live in-memory. Requires sticky sessions.
+    Set hocuspocus.service.sessionAffinity: ClientIP in values.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SEARCH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Full-text search runs inside PostgreSQL (tsvector + pg_trgm).
+  No extra service required; the pg_trgm extension is created by
+  the Alembic migration on backend startup.

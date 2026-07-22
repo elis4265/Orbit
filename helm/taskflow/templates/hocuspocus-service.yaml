@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "taskflow.fullname" . }}-hocuspocus
+  labels:
+    {{- include "taskflow.labels" . | nindent 4 }}
+    app.kubernetes.io/component: hocuspocus
+spec:
+  type: {{ .Values.hocuspocus.service.type }}
+  # sessionAffinity: ClientIP is required when replicaCount > 1
+  # (Yjs documents are in-memory per pod)
+  sessionAffinity: {{ .Values.hocuspocus.service.sessionAffinity }}
+  ports:
+    - port: {{ .Values.hocuspocus.service.port }}
+      targetPort: ws
+      protocol: TCP
+      name: ws
+  selector:
+    {{- include "taskflow.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: hocuspocus

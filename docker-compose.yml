@@ -1,0 +1,124 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: taskflow_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  # MailHog disabled (Brevo sends real mail) — to capture locally: uncomment block + depends_on, comment out SMTP_HOST in .env.
+  # mailhog:
+  #   image: mailhog/mailhog:latest
+  #   ports:
+  #     - "1025:1025"
+  #     - "8025:8025"
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  hocuspocus:
+    build: ./hocuspocus
+    ports:
+      - "1234:1234"
+    environment:
+      PORT: "1234"
+      JWT_SECRET_KEY: change-this-to-a-long-random-string-in-production
+      HOCUSPOCUS_INTERNAL_KEY: dev-hocuspocus-internal-key
+      FASTAPI_INTERNAL_URL: http://backend:8000
+      POSTGRES_URL: postgresql://postgres:mysecretpassword@db:5432/taskflow_dev
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      backend:
+        condition: service_started
+
+  frontend:
+    build: ./taskflow-frontend
+    ports:
+      - "3000:80"
+
+  backend:
+    build: ./taskflow-backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:mysecretpassword@db:5432/taskflow_dev
+      JWT_SECRET_KEY: change-this-to-a-long-random-string-in-production
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: "15"
+      REFRESH_TOKEN_EXPIRE_DAYS: "7"
+      REDIS_URL: redis://redis:6379/0
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      # '-' not ':-' — explicitly-empty SMTP_HOST must stay empty (Brevo); MailHog default only when the line is absent.
+      SMTP_HOST: ${SMTP_HOST-mailhog}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@taskflow.local}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: taskflow-attachments
+      MINIO_USE_SSL: "false"
+      ENVIRONMENT: development
+      DEBUG: "true"
+      ALLOWED_ORIGINS: '["http://localhost:3000","http://localhost:5173"]'
+      HOCUSPOCUS_INTERNAL_KEY: dev-hocuspocus-internal-key
+      # Git integration (optional — unset ⇒ that provider's connect path is hidden).
+      # ENCRYPTION_KEY: a Fernet key (python -c "from cryptography.fernet import Fernet;print(Fernet.generate_key().decode())")
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
+      GITLAB_OAUTH_CLIENT_ID: ${GITLAB_OAUTH_CLIENT_ID:-}
+      GITLAB_BASE_URL: ${GITLAB_BASE_URL:-https://gitlab.com}
+      # Google SSO login (REQ-150) — unset hides the button.
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio:
+        condition: service_healthy
+      # mailhog:
+      #   condition: service_started
+    develop:
+      watch:
+        - action: sync
+          path: ./taskflow-backend
+          target: /app
+
+volumes:
+  postgres_data:
+  minio_data:

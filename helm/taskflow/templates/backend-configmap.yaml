@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "taskflow.fullname" . }}-backend-config
+  labels:
+    {{- include "taskflow.labels" . | nindent 4 }}
+data:
+  JWT_ALGORITHM: {{ .Values.backend.env.jwtAlgorithm | quote }}
+  ACCESS_TOKEN_EXPIRE_MINUTES: {{ .Values.backend.env.accessTokenExpireMinutes | quote }}
+  REFRESH_TOKEN_EXPIRE_DAYS: {{ .Values.backend.env.refreshTokenExpireDays | quote }}
+  ENVIRONMENT: {{ .Values.backend.env.environment | quote }}
+  DEBUG: {{ .Values.backend.env.debug | quote }}
+  ALLOWED_ORIGINS: {{ .Values.backend.env.allowedOrigins | quote }}
+  BASE_URL: {{ include "taskflow.backendBaseUrl" . | quote }}
+  MINIO_ENDPOINT: {{ include "taskflow.minioEndpoint" . | quote }}
+  MINIO_BUCKET: {{ include "taskflow.minioBucket" . | quote }}
+  MINIO_USE_SSL: {{ include "taskflow.minioUseSsl" . | quote }}
+  SMTP_HOST: {{ .Values.smtp.host | quote }}
+  SMTP_PORT: {{ .Values.smtp.port | quote }}
+  EMAIL_FROM: {{ .Values.smtp.from | quote }}
+  GOOGLE_OAUTH_CLIENT_ID: {{ .Values.backend.env.googleOauthClientId | quote }}
+  GITHUB_OAUTH_CLIENT_ID: {{ .Values.backend.env.githubOauthClientId | quote }}
+  GITLAB_OAUTH_CLIENT_ID: {{ .Values.backend.env.gitlabOauthClientId | quote }}
+  GITLAB_BASE_URL: {{ .Values.backend.env.gitlabBaseUrl | quote }}
+  ORBIT_SUPERUSER_EMAIL: {{ .Values.backend.env.orbitSuperuserEmail | quote }}
+  WEBHOOK_ALLOW_PRIVATE_IPS: {{ .Values.backend.env.webhookAllowPrivateIps | quote }}

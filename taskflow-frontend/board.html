@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskFlow — Board</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="board-page">
+
+  <!-- Top nav -->
+  <nav class="topnav">
+    <div class="topnav-logo">Task<span>Flow</span></div>
+    <div class="topnav-divider"></div>
+    <select class="topnav-workspace" id="workspace-select"></select>
+    <div class="topnav-spacer"></div>
+    <div class="topnav-user">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <span id="user-email" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+      <button class="btn btn-ghost" id="logout-btn" style="padding:5px 10px;font-size:12px;">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Board -->
+  <main class="board-area" id="board-area">
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <span>Loading your board…</span>
+    </div>
+  </main>
+
+  <!-- New task modal -->
+  <div class="modal-overlay" id="task-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">New Task</h2>
+        <button class="btn-icon" id="modal-close">✕</button>
+      </div>
+      <form id="task-form">
+        <div class="form-group">
+          <label for="task-title">Title</label>
+          <input id="task-title" type="text" placeholder="What needs to be done?" required maxlength="100" />
+        </div>
+        <div class="form-group">
+          <label for="task-desc">Description (optional)</label>
+          <textarea id="task-desc" placeholder="Add some context…" style="height:72px;"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="task-status">Column</label>
+          <select id="task-status">
+            <option value="todo">To Do</option>
+            <option value="in_progress">In Progress</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="modal-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Create workspace modal -->
+  <div class="modal-overlay" id="ws-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Create Workspace</h2>
+      </div>
+      <form id="ws-form">
+        <div class="form-group">
+          <label for="ws-name">Workspace Name</label>
+          <input id="ws-name" type="text" placeholder="My Workspace" required maxlength="255" />
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="api.js"></script>
+  <script src="board.js"></script>
+</body>
+</html>

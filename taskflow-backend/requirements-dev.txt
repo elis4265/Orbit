@@ -1,0 +1,4 @@
+-r requirements.txt
+locust>=2.29.0
+radon
+pip-audit

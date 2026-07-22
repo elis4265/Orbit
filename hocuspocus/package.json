@@ -1,0 +1,22 @@
+{
+  "name": "taskflow-hocuspocus",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@hocuspocus/server": "^4.2.0",
+    "@hocuspocus/extension-database": "^4.2.0",
+    "@hocuspocus/transformer": "^4.2.0",
+    "@tiptap/core": "^3.26.1",
+    "@tiptap/starter-kit": "^3.26.1",
+    "@tiptap/html": "^3.26.1",
+    "@tiptap/extension-image": "^3.26.1",
+    "yjs": "^13.6.31",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.3",
+    "redis": "^4.7.0"
+  }
+}

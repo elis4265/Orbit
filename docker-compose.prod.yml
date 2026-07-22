@@ -1,0 +1,136 @@
+# Production stack — self-contained, NOT an override of docker-compose.yml.
+# The public domain comes from ORBIT_DOMAIN in .env (used by Caddy and the backend).
+# On the server:
+#   cp .env.production.example .env   # then fill in secrets
+#   docker compose -f docker-compose.prod.yml up -d --build
+# Only Caddy publishes ports (80/443). Everything else is internal-network only.
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      ORBIT_DOMAIN: ${ORBIT_DOMAIN:?set in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+      POSTGRES_DB: taskflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    # AOF so the token blacklist and rate-limit state survive restarts.
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?set in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?set in .env}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  hocuspocus:
+    build: ./hocuspocus
+    environment:
+      PORT: "1234"
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?set in .env}
+      HOCUSPOCUS_INTERNAL_KEY: ${HOCUSPOCUS_INTERNAL_KEY:?set in .env}
+      FASTAPI_INTERNAL_URL: http://backend:8000
+      POSTGRES_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/taskflow
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+  frontend:
+    build: ./taskflow-frontend
+    restart: unless-stopped
+
+  backend:
+    build: ./taskflow-backend
+    # Prod entrypoint: no --reload; trust proxy headers from the internal nginx hop
+    # so rate limiting sees real client IPs. Exactly 1 worker — WS rooms and
+    # planning-poker state are in-process.
+    entrypoint:
+      [
+        "sh",
+        "-c",
+        "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips '*'",
+      ]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@db:5432/taskflow
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: "15"
+      REFRESH_TOKEN_EXPIRE_DAYS: "7"
+      REDIS_URL: redis://redis:6379/0
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Email: Brevo only — SMTP intentionally blank.
+      SMTP_HOST: ""
+      SMTP_PORT: "587"
+      EMAIL_FROM: noreply@${ORBIT_DOMAIN}
+      BREVO_API_KEY: ${BREVO_API_KEY:?set in .env}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET: taskflow-attachments
+      MINIO_USE_SSL: "false"
+      ENVIRONMENT: production
+      DEBUG: "false"
+      ALLOWED_ORIGINS: '["https://${ORBIT_DOMAIN}","https://www.${ORBIT_DOMAIN}"]'
+      BASE_URL: https://${ORBIT_DOMAIN}
+      FRONTEND_URL: https://${ORBIT_DOMAIN}
+      HOCUSPOCUS_INTERNAL_KEY: ${HOCUSPOCUS_INTERNAL_KEY}
+      ORBIT_SUPERUSER_EMAIL: ${ORBIT_SUPERUSER_EMAIL:-}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  minio_data:
+  redis_data:
+  caddy_data:
+  caddy_config:

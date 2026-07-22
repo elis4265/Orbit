@@ -1,0 +1,27 @@
+# Gitleaks configuration for Orbit.
+#
+# Keeps all of gitleaks' default detection rules, and allowlists a handful of
+# strings that are provably NOT secrets: local-dev Docker defaults, ephemeral CI
+# test credentials, and documentation examples. Each entry below was confirmed by
+# hand — none is a real, live credential. Real secrets live in .env on the server
+# and are injected via ${ENV} interpolation; they are never committed.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Non-secrets: local-dev defaults, CI test placeholders, and docs examples."
+regexes = [
+  # CI test-database JWT secret — throwaway, ephemeral per run (.github/workflows/ci.yml)
+  '''ci-test-secret-32chars-placeholder''',
+  # Documentation example of a personal access token (HelpPage.tsx) — literally "..."
+  '''orbit_pat_\.\.\.''',
+  # Local-dev Docker Postgres default — production uses a unique password from .env
+  '''postgres:mysecretpassword@''',
+  # Local-dev MinIO default — production uses a unique key from .env
+  '''\bminioadmin\b''',
+]
+paths = [
+  # .env.example ships intentional placeholders for contributors to copy
+  '''\.env\.example$''',
+]

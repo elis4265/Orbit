@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "taskflow.fullname" . }}-hocuspocus
+  labels:
+    {{- include "taskflow.labels" . | nindent 4 }}
+    app.kubernetes.io/component: hocuspocus
+spec:
+  replicas: {{ .Values.hocuspocus.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "taskflow.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: hocuspocus
+  template:
+    metadata:
+      labels:
+        {{- include "taskflow.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: hocuspocus
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: hocuspocus
+          image: "{{ if .Values.global.imageRegistry }}{{ .Values.global.imageRegistry }}/{{ end }}{{ .Values.hocuspocus.image.repository }}:{{ .Values.hocuspocus.image.tag }}"
+          imagePullPolicy: {{ .Values.hocuspocus.image.pullPolicy }}
+          ports:
+            - name: ws
+              containerPort: {{ .Values.hocuspocus.service.port }}
+              protocol: TCP
+          env:
+            - name: PORT
+              value: {{ .Values.hocuspocus.service.port | quote }}
+            - name: FASTAPI_INTERNAL_URL
+              value: {{ include "taskflow.backendInternalUrl" . | quote }}
+            # JWT_SECRET_KEY, HOCUSPOCUS_INTERNAL_KEY, POSTGRES_URL from shared secret
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "taskflow.fullname" . }}-secrets
+                  key: JWT_SECRET_KEY
+            - name: HOCUSPOCUS_INTERNAL_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "taskflow.fullname" . }}-secrets
+                  key: HOCUSPOCUS_INTERNAL_KEY
+            - name: POSTGRES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "taskflow.fullname" . }}-secrets
+                  key: POSTGRES_URL
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "taskflow.fullname" . }}-secrets
+                  key: REDIS_URL
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.hocuspocus.service.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.hocuspocus.service.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.hocuspocus.resources | nindent 12 }}

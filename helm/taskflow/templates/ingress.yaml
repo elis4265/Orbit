@@ -1,0 +1,57 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "taskflow.fullname" . }}
+  labels:
+    {{- include "taskflow.labels" . | nindent 4 }}
+  annotations:
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host | quote }}
+        {{- if .Values.hocuspocus.ingress.host }}
+        - {{ .Values.hocuspocus.ingress.host | quote }}
+        {{- end }}
+      secretName: {{ include "taskflow.fullname" . }}-tls
+  {{- end }}
+  rules:
+    # ── Main application host ──────────────────────────────────────────────────
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          # /api/* → backend (REST + native WS at /api/v1/ws/*)
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "taskflow.fullname" . }}-backend
+                port:
+                  name: http
+          # / → frontend (SPA — nginx handles all other paths)
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "taskflow.fullname" . }}-frontend
+                port:
+                  name: http
+    # ── Hocuspocus collab host (subdomain) ────────────────────────────────────
+    {{- if .Values.hocuspocus.ingress.host }}
+    - host: {{ .Values.hocuspocus.ingress.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "taskflow.fullname" . }}-hocuspocus
+                port:
+                  name: ws
+    {{- end }}
+{{- end }}

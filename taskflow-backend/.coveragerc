@@ -1,0 +1,24 @@
+[run]
+source = app
+# SQLAlchemy-async hops through greenlets; without greenlet tracing, coverage
+# silently drops every line after the first `await session.execute()` in an
+# async function (verified: clone_task reported 32% while a trap proved it
+# runs end-to-end). This gate under-reported real coverage by several points.
+concurrency = greenlet,thread
+omit =
+    app/migrations/*
+    app/main.py
+    app/database.py
+    app/api/dependencies.py
+    app/core/otel.py
+    app/core/logging.py
+    app/core/redis.py
+    app/core/errors.py
+
+[report]
+show_missing = True
+fail_under = 80
+exclude_lines =
+    pragma: no cover
+    if TYPE_CHECKING:
+    raise NotImplementedError

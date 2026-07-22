@@ -1,0 +1,8 @@
+{$ORBIT_DOMAIN} {
+	encode gzip
+	reverse_proxy frontend:80
+}
+
+www.{$ORBIT_DOMAIN} {
+	redir https://{$ORBIT_DOMAIN}{uri} permanent
+}
