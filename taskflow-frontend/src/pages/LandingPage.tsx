@@ -145,14 +145,33 @@ export default function LandingPage() {
             Orbit is a self-hostable kanban tracker with sprints, realtime collaborative
             editing, and Git integration. Run it on your own infrastructure with one command.
           </p>
-          <div className="mt-8 flex justify-center">
+          <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               to="/register"
               className="w-full sm:w-auto text-center bg-brand hover:bg-brand-hover text-white font-semibold text-sm px-6 py-3 rounded-lg transition-colors"
             >
               Get started
             </Link>
+            <a
+              href="https://github.com/elis4265/Orbit"
+              target="_blank"
+              rel="noreferrer"
+              className="w-full sm:w-auto text-center border border-gray-700 hover:border-gray-600 text-gray-200 font-semibold text-sm px-6 py-3 rounded-lg transition-colors"
+            >
+              View on GitHub
+            </a>
           </div>
+          <p className="mt-4 text-xs text-gray-500">
+            Open source (MIT) ·{' '}
+            <a
+              href="https://github.com/elis4265/Orbit"
+              target="_blank"
+              rel="noreferrer"
+              className="underline hover:text-gray-300 transition-colors"
+            >
+              built by Claude
+            </a>
+          </p>
 
           <div className="mt-12">
             <ScreenshotCard
@@ -224,9 +243,19 @@ export default function LandingPage() {
       <footer className="border-t border-gray-800/80">
         <div className="max-w-6xl mx-auto px-4 sm:px-8 py-6 flex items-center justify-between text-sm text-gray-500">
           <span>&copy; Orbit</span>
-          <Link to="/help" className="hover:text-gray-300 transition-colors">
-            Help &amp; docs
-          </Link>
+          <div className="flex items-center gap-4">
+            <a
+              href="https://github.com/elis4265/Orbit"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-gray-300 transition-colors"
+            >
+              GitHub
+            </a>
+            <Link to="/help" className="hover:text-gray-300 transition-colors">
+              Help &amp; docs
+            </Link>
+          </div>
         </div>
       </footer>
     </div>

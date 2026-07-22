@@ -22,6 +22,23 @@ describe('Landing page', () => {
     expect(screen.getAllByRole('link', { name: 'Sign in' }).length).toBeGreaterThan(0)
   })
 
+  // HW-29: Orbit is open source — the landing page links to the repo and says so.
+  it('links to the open-source repo and states MIT', () => {
+    render(
+      <MemoryRouter>
+        <LandingPage />
+      </MemoryRouter>
+    )
+    const repo = 'https://github.com/elis4265/Orbit'
+    const ghLinks = screen.getAllByRole('link', { name: /github|built by claude/i })
+    expect(ghLinks.length).toBeGreaterThan(0)
+    ghLinks.forEach((l) => {
+      expect(l).toHaveAttribute('href', repo)
+      expect(l).toHaveAttribute('rel', 'noreferrer')  // don't leak referrer to GitHub
+    })
+    expect(screen.getByText(/open source \(mit\)/i)).toBeInTheDocument()
+  })
+
   it('renders all six feature tiles', () => {
     render(
       <MemoryRouter>
