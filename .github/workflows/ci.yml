@@ -191,13 +191,17 @@ jobs:
   secret-scan:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest
-    # gitleaks-action is a composite action; the repo-level working-directory
-    # default does not apply to it, so it scans from the repository root.
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # full history so a secret in any commit is caught
-      - name: Run gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITLEAKS_CONFIG: .gitleaks.toml
+      # HW-27: scan the FULL history via the gitleaks CLI rather than the
+      # gitleaks-action's diff-range mode. The action scans <base>^..<head>, which
+      # aborts on the root commit (no parent) and after force-pushes (orphaned base
+      # SHA) — a git error, not a real finding. A full-history detect is
+      # deterministic and cannot choke on either edge case.
+      - name: Run gitleaks (full history)
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/repo" \
+            ghcr.io/gitleaks/gitleaks:latest \
+            detect --source /repo --config /repo/.gitleaks.toml --redact --exit-code 1
