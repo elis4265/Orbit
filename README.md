@@ -8,6 +8,12 @@ FastAPI + React + Yjs collaborative editing. One `docker compose up` and it's ru
 
 ---
 
+## Built by Claude
+
+A human decided what Orbit should be — the requirements, the design decisions, the trade-offs. Claude wrote every line of it, and leaned on the tests to keep itself honest. The app was never really the point; finding out whether this could work was.
+
+---
+
 ## Screenshots
 
 | | |
