@@ -250,6 +250,10 @@ export interface Task {
   updated_at: string
   completed_at: string | null
   archived_at?: string | null // REQ-161
+  // HW-30: resolved custom status, sent by cross-project endpoints (My Work). Absent in
+  // Flow projects and on endpoints that don't eager-load it — fall back to `status` then.
+  custom_status_name?: string | null
+  custom_status_category?: StatusCategory | null
 }
 
 export type MyWorkFacet = 'assigned' | 'created' | 'watching'

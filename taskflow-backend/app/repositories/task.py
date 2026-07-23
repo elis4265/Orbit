@@ -163,7 +163,12 @@ class TaskRepository(BaseRepository[Task]):
             select(Task)
             .where(Task.project_id.in_(accessible), Task.archived_at.is_(None))
             .order_by(Task.due_date.asc().nulls_last(), Task.updated_at.desc())
-            .options(selectinload(Task.sub_tasks), selectinload(Task.tags), selectinload(Task.parent), selectinload(Task.project))
+            # HW-30: custom_status is eager-loaded here because My Work spans projects and
+            # cannot fetch each project's status list to resolve the name client-side.
+            .options(
+                selectinload(Task.sub_tasks), selectinload(Task.tags), selectinload(Task.parent),
+                selectinload(Task.project), selectinload(Task.custom_status),
+            )
         )
         if facet == "assigned":
             q = q.where(Task.assignee_id == user_id)
