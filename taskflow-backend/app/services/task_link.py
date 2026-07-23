@@ -29,7 +29,9 @@ class TaskLinkService:
         # Task.project_key reads Task.project, so eager-load it — a lazy load here
         # would raise MissingGreenlet under async SQLAlchemy (cf. services/search.py).
         result = await self.session.execute(
-            select(Task).options(selectinload(Task.project)).where(Task.id == linked_task_id)
+            select(Task)
+            .options(selectinload(Task.project), selectinload(Task.custom_status))  # HW-30
+            .where(Task.id == linked_task_id)
         )
         linked = result.scalars().first()
 

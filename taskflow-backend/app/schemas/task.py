@@ -93,6 +93,10 @@ class ParentTaskInfo(BaseModel):
     issue_type: IssueType
     status: TaskStatus
     sequence_number: int = 0
+    # HW-30: the parent row shows a status too — resolve it rather than
+    # trusting the fixed enum custom statuses bypass.
+    custom_status_name: Optional[str] = None
+    custom_status_category: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

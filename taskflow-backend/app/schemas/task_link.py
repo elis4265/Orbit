@@ -18,6 +18,10 @@ class LinkedTaskInfo(BaseModel):
     # recall tasks by number. Defaults cover the deleted-task placeholder.
     sequence_number: int = 0
     project_key: str = ""
+    # HW-30: `status` is the fixed enum custom statuses bypass — stale in guided/enforced
+    # projects. The resolved custom status is sent so the row can show the real state.
+    custom_status_name: str | None = None
+    custom_status_category: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -42,5 +46,9 @@ class TaskSearchResult(BaseModel):
     sequence_number: int = 0
     project_id: uuid.UUID | None = None
     project_key: str = ""
+    # HW-30: global search spans projects, so it can't resolve custom statuses
+    # client-side — the API sends the resolved status with each hit.
+    custom_status_name: str | None = None
+    custom_status_category: str | None = None
 
     model_config = {"from_attributes": True}

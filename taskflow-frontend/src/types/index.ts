@@ -215,6 +215,10 @@ export interface ParentTaskInfo {
   issue_type: IssueType
   status: TaskStatus
   sequence_number: number
+  // HW-30: resolved custom status; the fixed `status` is stale in guided/enforced
+  // projects. Absent in Flow projects — fall back to `status` then.
+  custom_status_name?: string | null
+  custom_status_category?: StatusCategory | null
 }
 
 export interface Task {
@@ -572,6 +576,10 @@ export interface LinkedTaskInfo {
   // task's placeholder carries 0/'' rather than omitting them.
   sequence_number: number
   project_key: string
+  // HW-30: resolved custom status; the fixed `status` is stale in guided/enforced
+  // projects. Absent in Flow projects — fall back to `status` then.
+  custom_status_name?: string | null
+  custom_status_category?: StatusCategory | null
 }
 
 export interface TaskLink {
@@ -619,6 +627,10 @@ export interface TaskSearchResult {
   sequence_number: number
   project_id?: string | null
   project_key: string
+  // HW-30: resolved custom status; the fixed `status` is stale in guided/enforced
+  // projects. Absent in Flow projects — fall back to `status` then.
+  custom_status_name?: string | null
+  custom_status_category?: StatusCategory | null
 }
 
 export type SprintStatus = 'planned' | 'active' | 'closed'

@@ -32,7 +32,7 @@ class TaskRepository(BaseRepository[Task]):
             .options(
                 selectinload(Task.sub_tasks),
                 selectinload(Task.tags),
-                selectinload(Task.parent),
+                selectinload(Task.parent).selectinload(Task.custom_status),
                 selectinload(Task.project),
             )
         )
@@ -53,7 +53,7 @@ class TaskRepository(BaseRepository[Task]):
             select(Task)
             .where(Task.project_id == project_id, Task.archived_at.is_(None))
             .order_by(Task.status, Task.position)
-            .options(selectinload(Task.sub_tasks), selectinload(Task.tags), selectinload(Task.parent), selectinload(Task.project))
+            .options(selectinload(Task.sub_tasks), selectinload(Task.tags), selectinload(Task.parent).selectinload(Task.custom_status), selectinload(Task.project))
         )
         if sprint_filter == "none":
             q = q.where(Task.sprint_id.is_(None))
@@ -74,7 +74,7 @@ class TaskRepository(BaseRepository[Task]):
             select(Task)
             .where(Task.project_id == project_id)
             .order_by(Task.status, Task.position)
-            .options(selectinload(Task.sub_tasks), selectinload(Task.tags), selectinload(Task.parent), selectinload(Task.project))
+            .options(selectinload(Task.sub_tasks), selectinload(Task.tags), selectinload(Task.parent).selectinload(Task.custom_status), selectinload(Task.project))
         )
         if not include_archived:
             # REQ-161: archived tasks leave default queries; ?include_archived opts in
@@ -166,7 +166,7 @@ class TaskRepository(BaseRepository[Task]):
             # HW-30: custom_status is eager-loaded here because My Work spans projects and
             # cannot fetch each project's status list to resolve the name client-side.
             .options(
-                selectinload(Task.sub_tasks), selectinload(Task.tags), selectinload(Task.parent),
+                selectinload(Task.sub_tasks), selectinload(Task.tags), selectinload(Task.parent).selectinload(Task.custom_status),
                 selectinload(Task.project), selectinload(Task.custom_status),
             )
         )
@@ -205,7 +205,7 @@ class TaskRepository(BaseRepository[Task]):
         result = await self.session.execute(
             select(Task)
             .where(Task.id == task_id)
-            .options(selectinload(Task.sub_tasks), selectinload(Task.tags), selectinload(Task.parent), selectinload(Task.project))
+            .options(selectinload(Task.sub_tasks), selectinload(Task.tags), selectinload(Task.parent).selectinload(Task.custom_status), selectinload(Task.project))
             .execution_options(populate_existing=True)
         )
         return result.scalars().first()
