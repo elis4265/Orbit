@@ -10,6 +10,13 @@ const STATUS_LABEL: Record<string, string> = {
   done: 'Done',
 }
 
+const CATEGORY_COLOR: Record<string, string> = {
+  unstarted: 'bg-gray-700 text-gray-300',
+  started: 'bg-brand/20 text-brand',
+  completed: 'bg-green-900/60 text-green-300',
+  cancelled: 'bg-gray-800 text-gray-500',
+}
+
 const STATUS_COLOR: Record<string, string> = {
   todo: 'bg-gray-700 text-gray-300',
   in_progress: 'bg-blue-900 text-blue-300',
@@ -120,8 +127,13 @@ export default function SearchBar({ onSelectTask }: SearchBarProps) {
                 {task.project_key}-{task.sequence_number}
               </span>
               <span className="text-sm text-gray-200 truncate flex-1">{task.title}</span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 ${STATUS_COLOR[task.status] ?? 'bg-gray-700 text-gray-300'}`}>
-                {STATUS_LABEL[task.status] ?? task.status}
+              {/* HW-30: global search spans projects, so the API resolves the custom status;
+                  the fixed `status` enum is stale in guided/enforced projects. */}
+              <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 ${
+                task.custom_status_name
+                  ? CATEGORY_COLOR[task.custom_status_category ?? ''] ?? 'bg-gray-700 text-gray-300'
+                  : STATUS_COLOR[task.status] ?? 'bg-gray-700 text-gray-300'}`}>
+                {task.custom_status_name ?? STATUS_LABEL[task.status] ?? task.status}
               </span>
             </button>
           ))}

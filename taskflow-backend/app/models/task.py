@@ -12,6 +12,7 @@ from app.models.base import TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.tag import Tag
+    from app.models.project_status import ProjectStatus
 
 
 class TaskStatus(PyEnum):
@@ -138,6 +139,25 @@ class Task(TimestampMixin, Base):
     )
 
     project: Mapped["Project"] = relationship("Project", back_populates="tasks", foreign_keys=[project_id])
+
+    # HW-30: in guided/enforced projects a task's real status lives in custom_status_id —
+    # the fixed `status` enum is bypassed and goes stale. Single-project screens resolve the
+    # name from the project's status list, but cross-project surfaces (My Work, global search,
+    # linked issues) can't. lazy="noload" so it is never lazily fetched on an async session:
+    # it resolves to None unless a query explicitly eager-loads it.
+    custom_status: Mapped[Optional["ProjectStatus"]] = relationship(
+        "ProjectStatus", foreign_keys=[custom_status_id], lazy="noload"
+    )
+
+    @property
+    def custom_status_name(self) -> str | None:
+        """Display name of the custom status, when eager-loaded. None in Flow projects."""
+        return self.custom_status.name if self.custom_status else None
+
+    @property
+    def custom_status_category(self) -> str | None:
+        """unstarted | started | completed | cancelled — drives colour and done-ness."""
+        return self.custom_status.category if self.custom_status else None
 
     # Self-referential relationship: one parent → many children
     sub_tasks: Mapped[list["Task"]] = relationship(

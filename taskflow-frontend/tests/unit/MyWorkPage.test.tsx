@@ -100,3 +100,41 @@ describe('REQ-142 — MyWorkPage', () => {
     expect(screen.getByText(/not watching any tasks/i)).toBeInTheDocument()
   })
 })
+
+// ── HW-30 — status badge reflects the custom status, not the stale legacy enum ─────
+describe('HW-30 — My Work shows the real status', () => {
+  it('[HW-30] shows the custom status name when the project uses custom statuses', () => {
+    // Guided project: the task sits in a custom "Done" column but `status` stayed todo.
+    mockUseMyWork.mockReturnValue({
+      data: [task({
+        title: 'Shipped thing', status: 'todo',
+        custom_status_id: 's-1', custom_status_name: 'Done', custom_status_category: 'completed',
+      })],
+      isLoading: false,
+    })
+    renderPage()
+    expect(screen.getByText('Done')).toBeInTheDocument()
+    expect(screen.queryByText('To Do')).not.toBeInTheDocument()
+  })
+
+  it('[HW-30] a custom in-progress status is shown by its own name', () => {
+    mockUseMyWork.mockReturnValue({
+      data: [task({
+        status: 'todo',
+        custom_status_id: 's-2', custom_status_name: 'In Review', custom_status_category: 'started',
+      })],
+      isLoading: false,
+    })
+    renderPage()
+    expect(screen.getByText('In Review')).toBeInTheDocument()
+  })
+
+  it('[HW-30] falls back to the fixed status in Flow projects (no custom status)', () => {
+    mockUseMyWork.mockReturnValue({
+      data: [task({ status: 'in_progress' })],
+      isLoading: false,
+    })
+    renderPage()
+    expect(screen.getByText('In Progress')).toBeInTheDocument()
+  })
+})

@@ -22,6 +22,28 @@ const STATUS_COLOR: Record<Task['status'], string> = {
   done: 'bg-green-900/60 text-green-300',
 }
 
+// HW-30: in guided/enforced projects the real status is the custom one — the fixed `status`
+// enum is bypassed by custom statuses and goes stale (a task sitting in a custom "Done"
+// column still reads status=todo). Board and Issues resolve the name from the project's
+// status list, but My Work spans projects, so the API resolves it for us. Prefer that;
+// fall back to the fixed enum for Flow projects.
+const CATEGORY_COLOR: Record<string, string> = {
+  unstarted: 'bg-gray-700 text-gray-300',
+  started: 'bg-brand/20 text-brand',
+  completed: 'bg-green-900/60 text-green-300',
+  cancelled: 'bg-gray-800 text-gray-500 line-through',
+}
+
+function statusBadge(task: Task): { label: string; color: string } {
+  if (task.custom_status_name) {
+    return {
+      label: task.custom_status_name,
+      color: CATEGORY_COLOR[task.custom_status_category ?? ''] ?? STATUS_COLOR.todo,
+    }
+  }
+  return { label: STATUS_LABEL[task.status], color: STATUS_COLOR[task.status] }
+}
+
 function isOverdue(task: Task): boolean {
   // completed_at is the category-aware done signal (set for any completed/cancelled
   // status incl. user-defined ones); task.status is the legacy enum custom statuses bypass.
@@ -91,8 +113,8 @@ export default function MyWorkPage() {
                       {dueLabel(task.due_date)}
                     </span>
                   )}
-                  <span className={`text-[10px] font-medium rounded-full px-2 py-0.5 shrink-0 ${STATUS_COLOR[task.status]}`}>
-                    {STATUS_LABEL[task.status]}
+                  <span className={`text-[10px] font-medium rounded-full px-2 py-0.5 shrink-0 ${statusBadge(task).color}`}>
+                    {statusBadge(task).label}
                   </span>
                 </button>
               </li>

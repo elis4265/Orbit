@@ -37,7 +37,7 @@ def build_task_search_stmt(query: str, project_ids: list[uuid.UUID], limit: int)
                 title_similarity > SIMILARITY_THRESHOLD,
             ),
         )
-        .options(selectinload(Task.project))  # TaskSearchResult.project_key
+        .options(selectinload(Task.project), selectinload(Task.custom_status))  # project_key + HW-30 status
         .order_by(
             func.ts_rank(Task.search_vector, ts_query).desc(),
             title_similarity.desc(),

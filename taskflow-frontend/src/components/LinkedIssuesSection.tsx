@@ -66,27 +66,49 @@ function GroupHeader({ label }: GroupHeaderProps) {
   )
 }
 
+// HW-30: colour a resolved custom status by its category.
+const CATEGORY_BADGE: Record<string, string> = {
+  unstarted: 'bg-gray-700 text-gray-400',
+  started: 'bg-brand/20 text-brand',
+  completed: 'bg-green-900/60 text-green-300',
+  cancelled: 'bg-gray-800 text-gray-500',
+}
+
 interface LinkRowProps {
   title: string
   status: string
+  /**
+   * HW-30: the resolved custom status. In guided/enforced projects `status` is the fixed
+   * enum custom statuses bypass, so it lies — prefer these when the API supplied them.
+   */
+  statusName?: string | null
+  statusCategory?: string | null
   /** HW-22: "HW-22"-style key, omitted for checklist subtasks which have none. */
   issueKey?: string
   onRemove?: () => void
   completed?: boolean
 }
 
-function LinkRow({ title, status, issueKey, onRemove, completed }: LinkRowProps) {
+function LinkRow({ title, status, statusName, statusCategory, issueKey, onRemove, completed }: LinkRowProps) {
+  const label = statusName ?? STATUS_LABEL[status] ?? status
+  const badge = statusName
+    ? CATEGORY_BADGE[statusCategory ?? ''] ?? 'bg-gray-700 text-gray-400'
+    : STATUS_BADGE[status] ?? 'bg-gray-700 text-gray-400'
+  // The key is struck through when the issue is resolved — also category-aware now.
+  const isResolved = statusCategory
+    ? statusCategory === 'completed' || statusCategory === 'cancelled'
+    : status === 'done'
   return (
     <div className="flex items-center justify-between bg-gray-800 rounded px-2 py-1 group">
       <div className="flex items-center gap-2 min-w-0">
-        <span className={`shrink-0 rounded px-1 py-0.5 text-[10px] font-medium ${STATUS_BADGE[status] ?? 'bg-gray-700 text-gray-400'}`}>
-          {STATUS_LABEL[status] ?? status}
+        <span className={`shrink-0 rounded px-1 py-0.5 text-[10px] font-medium ${badge}`}>
+          {label}
         </span>
         {issueKey && (
           <span
             data-testid="issue-key"
             className={`shrink-0 font-mono text-[10px] ${
-              status === 'done' ? 'text-gray-600 line-through' : 'text-gray-500'
+              isResolved ? 'text-gray-600 line-through' : 'text-gray-500'
             }`}
           >
             {issueKey}
@@ -244,6 +266,8 @@ export default function LinkedIssuesSection({ projectId, task }: Props) {
             <LinkRow
               title={task.parent!.title}
               status={task.parent!.status}
+              statusName={task.parent!.custom_status_name}
+              statusCategory={task.parent!.custom_status_category}
               // The parent is always in this project, so it shares its key prefix.
               issueKey={taskKey({ project_key: task.project_key, sequence_number: task.parent!.sequence_number })}
             />
@@ -261,6 +285,8 @@ export default function LinkedIssuesSection({ projectId, task }: Props) {
                 key={lnk.id}
                 title={lnk.linked_task.title}
                 status={lnk.linked_task.status}
+                statusName={lnk.linked_task.custom_status_name}
+                statusCategory={lnk.linked_task.custom_status_category}
                 issueKey={taskKey(lnk.linked_task)}
                 onRemove={() => removeLink.mutate(lnk.id)}
               />

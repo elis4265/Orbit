@@ -93,6 +93,10 @@ class ParentTaskInfo(BaseModel):
     issue_type: IssueType
     status: TaskStatus
     sequence_number: int = 0
+    # HW-30: the parent row shows a status too — resolve it rather than
+    # trusting the fixed enum custom statuses bypass.
+    custom_status_name: Optional[str] = None
+    custom_status_category: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -114,6 +118,12 @@ class TaskResponse(TaskBase):
     updated_at: datetime
     completed_at: Optional[datetime] = None
     archived_at: Optional[datetime] = None
+    # HW-30: the resolved custom status. Populated only where the query eager-loads it
+    # (cross-project surfaces like My Work); None in Flow projects and where not loaded.
+    # Lets clients that can't fetch a project's status list still show the real status,
+    # instead of the fixed `status` enum which custom statuses bypass and leave stale.
+    custom_status_name: Optional[str] = None
+    custom_status_category: Optional[str] = None
     sub_tasks: List[SubTaskResponse] = Field(default=[])
     tags: List[TagResponse] = Field(default=[])
     parent: Optional[ParentTaskInfo] = None
