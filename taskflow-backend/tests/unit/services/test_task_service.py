@@ -885,3 +885,39 @@ async def test_omitted_assignee_still_gets_the_default(mock_task_repo, mode, con
         mock_task_repo, make_project_repo(mode, configured), payload, created_by=creator,
     )
     assert result == target
+
+
+# ── HW-31 — a task born into a custom status mirrors its category into `status` ──
+# Covers import and create-into-column: create_task looks up the ProjectStatus and
+# sets the fixed enum from its category, so `status` is never stale from birth.
+
+@pytest.mark.asyncio
+async def test_create_into_custom_done_status_sets_status_done(mock_task_repo):
+    status_row = MagicMock()
+    status_row.category = "completed"
+    mock_task_repo.session = MagicMock()
+    mock_task_repo.session.get = AsyncMock(return_value=status_row)
+    mock_task_repo.create_with_sequence = AsyncMock(return_value=make_task())
+
+    svc = TaskService(task_repo=mock_task_repo)
+    cid = uuid.uuid4()
+    # payload defaults status=todo, but it's born into a completed custom status
+    await svc.create_task(uuid.uuid4(), TaskCreate(title="imported", custom_status_id=cid),
+                          apply_default_assignee=False)
+    written = mock_task_repo.create_with_sequence.call_args[0][1]
+    assert written["status"] == TaskStatus.done
+    assert written["custom_status_id"] == cid
+
+
+@pytest.mark.asyncio
+async def test_create_without_custom_status_keeps_payload_status(mock_task_repo):
+    # No custom status → no lookup, payload status stands (Flow projects).
+    mock_task_repo.session = MagicMock()
+    mock_task_repo.session.get = AsyncMock(return_value=None)
+    mock_task_repo.create_with_sequence = AsyncMock(return_value=make_task())
+
+    svc = TaskService(task_repo=mock_task_repo)
+    await svc.create_task(uuid.uuid4(), TaskCreate(title="plain", status=TaskStatus.in_progress),
+                          apply_default_assignee=False)
+    written = mock_task_repo.create_with_sequence.call_args[0][1]
+    assert written["status"] == TaskStatus.in_progress
