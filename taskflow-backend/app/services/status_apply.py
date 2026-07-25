@@ -17,6 +17,17 @@ from app.services.project_status import ProjectStatusService
 
 _RESOLVED_CATEGORIES = {"completed", "cancelled"}
 
+# HW-31: the fixed enum a custom status's category maps to. The scheduler, blocker gate,
+# stats and the ?status= filter all read task.status, so it must track the custom status
+# rather than staying frozen at the task's creation value. Same mapping used by the
+# Guided/Enforced → Flow mode switch (_CATEGORY_TO_TASK_STATUS) and the UI update path.
+_CATEGORY_TO_ENUM = {
+    "unstarted": TaskStatus.todo,
+    "started": TaskStatus.in_progress,
+    "completed": TaskStatus.done,
+    "cancelled": TaskStatus.done,
+}
+
 
 def _stamp_completed_at(task, resolved: bool) -> None:
     """REQ-137: stamp on entering a resolved state (preserving an existing stamp),
@@ -93,5 +104,7 @@ async def apply_transition(session, task, project, *, category=None, name=None) 
             return "blocked"
 
     task.custom_status_id = status.id
+    # HW-31: keep the fixed enum in step with the custom status's category.
+    task.status = _CATEGORY_TO_ENUM.get(status.category, task.status)
     _stamp_completed_at(task, status.category in _RESOLVED_CATEGORIES)
     return "changed"

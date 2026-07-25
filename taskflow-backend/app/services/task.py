@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from app.repositories.task_link import TaskLinkRepository
 
 from app.models.task import Task, TaskStatus, IssueType, SeverityLevel, ALLOWED_PARENT_TYPES
+from app.services.status_apply import _CATEGORY_TO_ENUM  # HW-31: category → fixed enum
 from app.repositories.task import TaskRepository
 from app.schemas.task import TaskCreate, TaskUpdate, TaskReorderItem
 from app.core.errors import AppError
@@ -99,11 +100,19 @@ class TaskService:
             if apply_default_assignee
             else data.assignee_id
         )
+        # HW-31: born straight into a custom status (import, or create-into-column)?
+        # Mirror its category into the fixed enum so status is never stale from birth.
+        status = data.status
+        if data.custom_status_id is not None:
+            from app.models.project_status import ProjectStatus
+            ps = await self.task_repo.session.get(ProjectStatus, data.custom_status_id)
+            if ps is not None:
+                status = _CATEGORY_TO_ENUM.get(ps.category, status)
         task_data = {
             "project_id": project_id,
             "title": data.title,
             "description": data.description,
-            "status": data.status,
+            "status": status,
             "issue_type": data.issue_type,
             "priority_id": data.priority_id,
             "position": data.position,

@@ -105,3 +105,41 @@ async def test_custom_mode_completed_to_completed_preserves_original_timestamp()
     result = await apply_transition(session, task, guided_project(), name="Shipped")
     assert result == "changed"
     assert task.completed_at == original
+
+
+# ── HW-31 — apply_transition mirrors the custom status's category into task.status ──
+# The VCS/automation path set custom_status_id + completed_at but left the fixed enum
+# stale, so scheduler/blocker-gate/stats read the wrong status. Now it mirrors, matching
+# what the UI update path already did.
+
+@pytest.mark.asyncio
+async def test_custom_completed_mirrors_status_to_done():
+    task = make_task(status=TaskStatus.todo)
+    session = session_returning(status_row("completed"))
+    await apply_transition(session, task, guided_project(), category="done")
+    assert task.status == TaskStatus.done
+
+
+@pytest.mark.asyncio
+async def test_custom_cancelled_mirrors_status_to_done():
+    task = make_task(status=TaskStatus.in_progress)
+    session = session_returning(status_row("cancelled"))
+    await apply_transition(session, task, guided_project(), name="Won't fix")
+    assert task.status == TaskStatus.done
+
+
+@pytest.mark.asyncio
+async def test_custom_started_mirrors_status_to_in_progress():
+    task = make_task(status=TaskStatus.todo)
+    session = session_returning(status_row("started"))
+    await apply_transition(session, task, guided_project(), category="in_progress")
+    assert task.status == TaskStatus.in_progress
+
+
+@pytest.mark.asyncio
+async def test_custom_unstarted_mirrors_status_to_todo():
+    task = make_task(status=TaskStatus.done, completed_at=datetime.now(timezone.utc))
+    session = session_returning(status_row("unstarted"))
+    await apply_transition(session, task, guided_project(), name="Backlog")
+    assert task.status == TaskStatus.todo
+    assert task.completed_at is None  # and completed_at still cleared, unchanged
