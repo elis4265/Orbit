@@ -86,7 +86,9 @@ export function useReorderTasks(projectId: string, boardId: string) {
 export function useBulkUpdateTasks(projectId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ task_ids, ...changes }: { task_ids: string[]; status?: TaskStatus }) =>
+    // HW-21: custom_status_id lets the mobile "Move to" sheet target custom statuses;
+    // the bulk endpoint already resolves it to the fixed enum server-side.
+    mutationFn: ({ task_ids, ...changes }: { task_ids: string[]; status?: TaskStatus; custom_status_id?: string }) =>
       taskApi.bulkEdit(projectId, task_ids, changes),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['tasks', projectId] }); qc.invalidateQueries({ queryKey: ['project-tasks', projectId] }) },
   })
