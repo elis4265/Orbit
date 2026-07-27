@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import { setSocketSend, emitSocketMessage } from '../lib/projectSocketBus'
@@ -67,32 +67,34 @@ async function getValidToken(): Promise<string | null> {
 
 export function useProjectSocket(projectId: string) {
   const queryClient = useQueryClient()
-  const wsRef = useRef<WebSocket | null>(null)
-  const delayRef = useRef(RECONNECT_DELAY_MS)
-  const unmountedRef = useRef(false)
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // All connection state is local to one effect run. Sharing it across runs via
+  // refs raced on project switch: the new run reset the shared "unmounted" flag,
+  // so a stale connect() mid-await slipped past its guard and left a reconnect
+  // loop dialing the OLD project id forever alongside the live socket.
   useEffect(() => {
     if (!projectId) return
-    unmountedRef.current = false
-    delayRef.current = RECONNECT_DELAY_MS
+    let cancelled = false
+    let ws: WebSocket | null = null
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+    let delay = RECONNECT_DELAY_MS
 
     async function connect() {
-      if (unmountedRef.current) return
+      if (cancelled) return
 
       const token = await getValidToken()
-      if (!token) return
+      if (cancelled || !token) return
 
-      const ws = new WebSocket(projectWsUrl(projectId))
-      wsRef.current = ws
+      const sock = new WebSocket(projectWsUrl(projectId))
+      ws = sock
 
-      ws.onopen = () => {
-        delayRef.current = RECONNECT_DELAY_MS
-        ws.send(JSON.stringify({ type: 'auth', token }))
-        setSocketSend((m) => ws.send(JSON.stringify(m)))
+      sock.onopen = () => {
+        delay = RECONNECT_DELAY_MS
+        sock.send(JSON.stringify({ type: 'auth', token }))
+        setSocketSend((m) => sock.send(JSON.stringify(m)))
       }
 
-      ws.onmessage = (event) => {
+      sock.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data as string) as { type: string; payload?: { task_id?: string; user_id?: string } }
           emitSocketMessage(msg)
@@ -116,28 +118,28 @@ export function useProjectSocket(projectId: string) {
         }
       }
 
-      ws.onclose = (event) => {
-        wsRef.current = null
+      sock.onclose = (event) => {
+        if (ws === sock) ws = null
         setSocketSend(null)
-        if (event.code === 4001 || unmountedRef.current) return
+        if (event.code === 4001 || cancelled) return
 
-        timeoutRef.current = setTimeout(() => {
-          delayRef.current = Math.min(delayRef.current * 2, MAX_RECONNECT_DELAY_MS)
+        reconnectTimer = setTimeout(() => {
+          delay = Math.min(delay * 2, MAX_RECONNECT_DELAY_MS)
           connect()
-        }, delayRef.current)
+        }, delay)
       }
 
-      ws.onerror = () => {
-        ws.close()
+      sock.onerror = () => {
+        sock.close()
       }
     }
 
     connect()
 
     return () => {
-      unmountedRef.current = true
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-      wsRef.current?.close()
+      cancelled = true
+      if (reconnectTimer) clearTimeout(reconnectTimer)
+      ws?.close()
     }
   }, [projectId, queryClient])
 }

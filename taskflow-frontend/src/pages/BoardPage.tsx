@@ -62,6 +62,7 @@ import { useBoardViewState, type SwimlaneMode } from '../hooks/useBoardViewState
 import { initialBoardViewMode, VIEW_PREFERENCE_KEY, type BoardViewMode } from '../lib/viewport'
 import { applyTaskFilters } from '../lib/taskFilter'
 import { landingProject, readLastProjectSeg } from '../lib/lastProject'
+import { resolveProjectId } from '../lib/projectResolve'
 import { epicDoneGateCount } from '../lib/epicGate'
 import { useRelatedToMe } from '../hooks/useRelatedToMe'
 import { packGridPositions, tasksToGridReorderItems, nextFreeCell } from '../lib/gridPacker'
@@ -104,10 +105,11 @@ function getTaskColumnId(task: Task, isCustomMode: boolean, effectiveColumns?: C
 // A raw id is still accepted (legacy / post-auth redirects) for backward compat.
 // No param (landing at '/') → last-visited project, so the pre-redirect render
 // already shows the right board instead of flashing the first one.
+// '' while unresolved (projects loading / unknown key) — never the raw key, so
+// project-scoped queries stay disabled instead of 422ing on UUID path params.
 function resolveWorkspaceId(param: string | undefined, list: Project[]): string {
   if (!param) return landingProject(list, readLastProjectSeg())?.id ?? ''
-  const byKey = list.find((p) => p.key?.toLowerCase() === param.toLowerCase())
-  return byKey?.id ?? param
+  return resolveProjectId(param, list)
 }
 // The URL segment for a project id — its key when known, else the id.
 function projectSeg(list: Project[], id: string | undefined): string {
