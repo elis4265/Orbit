@@ -332,3 +332,77 @@ describe('HW-10 — no resolvable board (Backlog)', () => {
   })
 })
 
+// ── HW-34: summary over the 100-char limit — inline error, counter, no silent 422 ──
+
+describe('HW-34 — summary limit inline handling', () => {
+  const OVER_LIMIT =
+    'Board load fires a 422 request wave and leaks a stale WebSocket reconnect loop when the URL carries the project key' // 115 chars
+
+  it('[REQ-167-2] over-limit summary shows an inline error and blocks submission', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined)
+    render(<CreateTaskModal {...newTaskProps()} onSubmit={onSubmit} />)
+    fireEvent.change(screen.getByPlaceholderText('Task title'), { target: { value: OVER_LIMIT } })
+
+    expect(await screen.findByText(/summary is 115 characters — the limit is 100/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /create task/i })).toBeDisabled()
+
+    fireEvent.submit(screen.getByPlaceholderText('Task title').closest('form')!)
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  it('[REQ-167-2] shortening the summary clears the error and re-enables submit', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined)
+    render(<CreateTaskModal {...newTaskProps()} onSubmit={onSubmit} />)
+    const input = screen.getByPlaceholderText('Task title')
+    fireEvent.change(input, { target: { value: OVER_LIMIT } })
+    await screen.findByText(/the limit is 100/i)
+
+    fireEvent.change(input, { target: { value: 'Board load fires a 422 request wave' } })
+    expect(screen.queryByText(/the limit is 100/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /create task/i })).not.toBeDisabled()
+
+    fireEvent.submit(input.closest('form')!)
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled())
+  })
+
+  it('[REQ-167-3] live counter appears from 80 characters and not before', () => {
+    render(<CreateTaskModal {...newTaskProps()} />)
+    const input = screen.getByPlaceholderText('Task title')
+
+    fireEvent.change(input, { target: { value: 'a'.repeat(79) } })
+    expect(screen.queryByText('79/100')).not.toBeInTheDocument()
+
+    fireEvent.change(input, { target: { value: 'a'.repeat(85) } })
+    expect(screen.getByText('85/100')).toBeInTheDocument()
+  })
+
+  it('[REQ-167-4] a server 422 surfaces inline instead of failing silently', async () => {
+    const onClose = vi.fn()
+    const onSubmit = vi.fn().mockRejectedValue({
+      response: {
+        status: 422,
+        data: { detail: [{ loc: ['body', 'title'], msg: 'String should have at most 100 characters' }] },
+      },
+    })
+    render(<CreateTaskModal {...newTaskProps()} onSubmit={onSubmit} onClose={onClose} />)
+    fireEvent.change(screen.getByPlaceholderText('Task title'), { target: { value: 'Fits the client check' } })
+    fireEvent.submit(screen.getByPlaceholderText('Task title').closest('form')!)
+
+    expect(await screen.findByText(/summary: string should have at most 100 characters/i)).toBeInTheDocument()
+    expect(onClose).not.toHaveBeenCalled()
+    const submit = screen.getByRole('button', { name: /create task/i }) as HTMLButtonElement
+    expect(submit).not.toBeDisabled()
+  })
+
+  it('[REQ-167-4] a non-422 failure still shows a generic inline error', async () => {
+    const onClose = vi.fn()
+    const onSubmit = vi.fn().mockRejectedValue(new Error('network down'))
+    render(<CreateTaskModal {...newTaskProps()} onSubmit={onSubmit} onClose={onClose} />)
+    fireEvent.change(screen.getByPlaceholderText('Task title'), { target: { value: 'Any task' } })
+    fireEvent.submit(screen.getByPlaceholderText('Task title').closest('form')!)
+
+    expect(await screen.findByText(/task was not created/i)).toBeInTheDocument()
+    expect(onClose).not.toHaveBeenCalled()
+  })
+})
+

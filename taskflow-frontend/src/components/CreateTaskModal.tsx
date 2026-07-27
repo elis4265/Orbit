@@ -10,6 +10,7 @@ import { useProjectPriorities } from '../hooks/usePriorities'
 import { useTags, useCreateTag } from '../hooks/useTags'
 import { useTaskTemplates } from '../hooks/useTaskTemplates'
 import { applyTemplate } from '../lib/taskTemplate'
+import { summaryCounter, summaryError, validationMessage } from '../lib/taskLimits'
 import AttachmentSection from './AttachmentSection'
 import LocalRichTextEditor from './LocalRichTextEditor'
 import TagPicker from './TagPicker'
@@ -85,6 +86,10 @@ export default function CreateTaskModal({ open, onClose, onSubmit, initialStatus
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [boardError, setBoardError] = useState('')
+  // HW-34: server 422s surface here instead of failing silently (REQ-167-4)
+  const [formError, setFormError] = useState('')
+  const titleError = summaryError(title)
+  const titleCounter = summaryCounter(title)
   const titleRef = useRef<HTMLInputElement>(null)
   const pendingFileInputRef = useRef<HTMLInputElement>(null)
 
@@ -97,6 +102,7 @@ export default function CreateTaskModal({ open, onClose, onSubmit, initialStatus
   function syncFormState() {
     if (!open) return
     setBoardError('')
+    setFormError('')
     assigneeTouched.current = false
     if (editTask) {
       setTitle(editTask.title)
@@ -145,6 +151,8 @@ export default function CreateTaskModal({ open, onClose, onSubmit, initialStatus
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!title.trim()) return
+    // HW-34: the inline error under the field is already visible — just refuse.
+    if (titleError) return
     // Resolve the board before showing the spinner: creation is board-scoped by
     // URL, and returning early after setIsSubmitting(true) would strand it on.
     const resolvedBoardId = boardId || selectedBoardId
@@ -153,6 +161,7 @@ export default function CreateTaskModal({ open, onClose, onSubmit, initialStatus
       return
     }
     setBoardError('')
+    setFormError('')
     setIsSubmitting(true)
     try {
       const result = await onSubmit({
@@ -183,6 +192,9 @@ export default function CreateTaskModal({ open, onClose, onSubmit, initialStatus
         }
       }
       onClose()
+    } catch (err) {
+      // HW-34 (REQ-167-4): creation must never fail without visible feedback.
+      setFormError(validationMessage(err) ?? 'Something went wrong — the task was not created.')
     } finally {
       setIsSubmitting(false)
     }
@@ -250,15 +262,29 @@ export default function CreateTaskModal({ open, onClose, onSubmit, initialStatus
         {/* Scrollable body */}
         <div className="overflow-y-auto flex-1 min-h-0">
           <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-4">
-            <input
-              ref={titleRef}
-              type="text"
-              placeholder="Task title"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-brand transition-colors"
-            />
+            <div>
+              <input
+                ref={titleRef}
+                type="text"
+                placeholder="Task title"
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                aria-invalid={!!titleError}
+                className={`w-full bg-gray-800 border rounded-lg px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 focus:outline-none transition-colors ${
+                  titleError ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-brand'
+                }`}
+              />
+              {/* HW-34: live counter from 80 chars; inline error past the 100 limit */}
+              {(titleError || titleCounter) && (
+                <div className="mt-1 flex items-start justify-between gap-2">
+                  <p className="text-xs text-red-400 min-h-0">{titleError ?? ''}</p>
+                  {titleCounter && (
+                    <p className={`text-xs shrink-0 ${titleError ? 'text-red-400' : 'text-gray-500'}`}>{titleCounter}</p>
+                  )}
+                </div>
+              )}
+            </div>
 
             {!boardId && boards && boards.length > 0 && (
               <div>
@@ -440,6 +466,10 @@ export default function CreateTaskModal({ open, onClose, onSubmit, initialStatus
               <p className="text-xs text-red-400 bg-red-400/10 rounded-lg px-3 py-2">{boardError}</p>
             )}
 
+            {formError && (
+              <p className="text-xs text-red-400 bg-red-400/10 rounded-lg px-3 py-2">{formError}</p>
+            )}
+
             {/* Sticky on the phone sheet so Create/Cancel stay reachable while the
                 form scrolls; reverts to the plain inline row from md up. */}
             <div className="flex gap-3 pt-2 sticky bottom-0 -mx-4 px-4 pb-4 bg-gray-900 border-t border-gray-800 md:static md:mx-0 md:px-0 md:pb-0 md:bg-transparent md:border-t-0">
@@ -453,7 +483,7 @@ export default function CreateTaskModal({ open, onClose, onSubmit, initialStatus
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !!titleError}
                 className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-brand hover:bg-brand-hover text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 {submitLabel(isSubmitting, editTask)}

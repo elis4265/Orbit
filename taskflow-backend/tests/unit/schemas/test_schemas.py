@@ -12,7 +12,7 @@ from app.schemas.project_member import (
     MemberResponse, PromoteRoleRequest,
 )
 from app.models.task import TaskStatus, IssueType
-from app.schemas.task import TaskCreate
+from app.schemas.task import TaskCreate, SubTaskCreate
 from app.models.project_member import MemberRole
 from app.schemas.activity import ActivityResponse
 
@@ -157,6 +157,39 @@ def test_task_create_invalid_issue_type_rejected():
 def test_task_update_issue_type_optional():
     u = TaskUpdate(version=1)
     assert u.issue_type is None
+
+
+# ============================================================================
+# HW-34: TITLE LENGTH LIMITS
+# ============================================================================
+
+def test_task_create_title_at_limit_accepted():
+    t = TaskCreate(title="a" * 100)
+    assert len(t.title) == 100
+
+
+def test_task_create_title_over_limit_rejected():
+    with pytest.raises(ValidationError) as exc:
+        TaskCreate(title="a" * 101)
+    assert exc.value.errors()[0]["type"] == "string_too_long"
+
+
+def test_task_update_title_over_limit_rejected():
+    with pytest.raises(ValidationError):
+        TaskUpdate(title="a" * 101, version=1)
+
+
+def test_subtask_title_at_limit_accepted():
+    s = SubTaskCreate(title="a" * 100)
+    assert len(s.title) == 100
+
+
+def test_subtask_title_over_limit_rejected():
+    # Subtasks are child Task rows (String(100)); the old 200 cap let
+    # 101-200-char titles through Pydantic into a DB-level 500.
+    with pytest.raises(ValidationError) as exc:
+        SubTaskCreate(title="a" * 101)
+    assert exc.value.errors()[0]["type"] == "string_too_long"
 
 
 def test_task_update_issue_type_set():

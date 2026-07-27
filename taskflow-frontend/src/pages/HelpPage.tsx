@@ -180,6 +180,7 @@ export default function HelpPage() {
             </Sub>
             <Sub title="Creating your first task">
               <P>Click the <Code>+</Code> button on any column (Kanban) or use the keyboard shortcut <Code>C</Code> to open the create task form. Fill in the title — everything else is optional.</P>
+              <P>The title (summary) is limited to <strong className="text-gray-200">100 characters</strong> — a live counter appears from 80 on, and going over shows the exact count so you can trim. Long detail belongs in the description, which has no limit.</P>
             </Sub>
 
             <Sub title="Migrating from another tracker (CSV import)">
