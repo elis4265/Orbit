@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom'
 import { useProjects } from './useProjects'
+import { resolveProjectId } from '../lib/projectResolve'
 import type { Project } from '../types'
 
 /**
@@ -11,12 +12,10 @@ export function useResolvedProject() {
   const { workspaceId: param } = useParams<{ workspaceId: string }>()
   const { data } = useProjects()
   const projects: Project[] = Array.isArray(data) ? data : []
-  const project = projects.find(
-    (p) => p.id === param || p.key?.toLowerCase() === param?.toLowerCase()
-  )
-  // Resolved id, or the raw param as a fallback (a UUID, or briefly a key while
-  // projects load — it re-resolves to the id once they arrive).
-  const projectId = project?.id ?? param ?? ''
+  // '' until the key resolves (projects loading) — a key must never be used as
+  // the id: it would hit UUID-typed endpoints and 422 (queries gate on '').
+  const projectId = resolveProjectId(param, projects)
+  const project = projects.find((p) => p.id === projectId)
   const seg = project?.key ?? param ?? ''
   return { projectId, seg, project, projects }
 }
