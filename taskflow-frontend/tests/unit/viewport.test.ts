@@ -1,4 +1,5 @@
-// Mobile board-view default: phones start in 'list', but a stored user choice always wins.
+// Board-view default: kanban on every viewport (HW-21 made it usable on phones);
+// a stored user choice always wins.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   initialBoardViewMode,
@@ -71,12 +72,14 @@ describe('isSmallViewport', () => {
 })
 
 describe('initialBoardViewMode — no stored preference', () => {
-  it('falls back to list on a small viewport', () => {
+  // HW-21/DD-9: kanban is now the phone experience too (swipe, one status per screen),
+  // so it's the default everywhere. Was 'list' on small screens when the board was unusable.
+  it('defaults to kanban on a small viewport', () => {
     setViewport(true)
-    expect(initialBoardViewMode()).toBe('list')
+    expect(initialBoardViewMode()).toBe('kanban')
   })
 
-  it('falls back to kanban on desktop', () => {
+  it('defaults to kanban on desktop', () => {
     setViewport(false)
     expect(initialBoardViewMode()).toBe('kanban')
   })
@@ -107,9 +110,9 @@ describe('initialBoardViewMode — stored preference always wins', () => {
     expect(initialBoardViewMode()).toBe(mode)
   })
 
-  it('ignores a garbage stored value and uses the viewport default', () => {
+  it('ignores a garbage stored value and uses the default (kanban)', () => {
     localStorage.setItem(VIEW_PREFERENCE_KEY, 'not-a-view')
     setViewport(true)
-    expect(initialBoardViewMode()).toBe('list')
+    expect(initialBoardViewMode()).toBe('kanban')
   })
 })

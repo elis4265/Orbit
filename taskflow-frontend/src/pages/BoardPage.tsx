@@ -40,6 +40,7 @@ import Column from '../components/Column'
 import TaskCard from '../components/TaskCard'
 import ListView from '../components/ListView'
 import BulkEditBar from '../components/BulkEditBar'
+import MobileBoard, { type MobileColumn } from '../components/MobileBoard'
 import IssueTypeBadge from '../components/IssueTypeBadge'
 import CalendarView from '../components/CalendarView'
 import GanttView from '../components/GanttView'
@@ -413,6 +414,21 @@ export default function BoardPage() {
   async function handleBulkDelete() {
     for (const id of selectedTaskIds) deleteTask.mutate(id)
     clearSelection()
+  }
+
+  // HW-21: mobile "Move to" — send the selection to a column. Custom mode targets the
+  // custom status by id; Open mode targets the fixed enum. Bulk endpoint validates both.
+  async function moveSelectedToColumn(col: MobileColumn) {
+    if (!selectedTaskIds.size) return
+    const task_ids = [...selectedTaskIds]
+    await bulkUpdateTasks.mutateAsync(
+      isCustomMode ? { task_ids, custom_status_id: col.id } : { task_ids, status: col.taskStatus as TaskStatus },
+    )
+    clearSelection()
+  }
+
+  const SWIMLANE_LABELS: Record<string, string> = {
+    assignee: 'Assignee', priority: 'Priority', type: 'Type', epic: 'Epic',
   }
 
   // Local ordered state for optimistic drag reordering
@@ -1127,6 +1143,31 @@ export default function BoardPage() {
     const swimlaneGroups = getSwimlaneGroups(viewTasks)
 
     return (
+      <>
+      {/* HW-21: phones get a swipe-one-status-per-screen board; ≥md is the desktop board below, unchanged. */}
+      <div className="md:hidden">
+        <MobileBoard
+          columns={visibleColumns as unknown as MobileColumn[]}
+          tasks={viewTasks}
+          colIdOf={(t) => getTaskColumnId(t, isCustomMode, effectiveColumns)}
+          groupTasks={getSwimlaneGroups}
+          grouped={swimlaneMode !== 'none'}
+          groupLabel={SWIMLANE_LABELS[swimlaneMode]}
+          filterActive={activeFilters.length > 0}
+          onClearFilter={() => setActiveFilters([])}
+          memberMap={memberMap}
+          priorityMap={priorityMap}
+          childCountMap={childCountMap}
+          selectedIds={selectedTaskIds}
+          onToggleSelect={handleSelectToggle}
+          onClearSelection={clearSelection}
+          onOpenTask={(id) => setDetailTaskId(id)}
+          onDeleteTask={(id) => deleteTask.mutate(id)}
+          onCreate={(col) => openCreate(col.taskStatus as TaskStatus, isCustomMode ? col.id : null)}
+          onMove={moveSelectedToColumn}
+        />
+      </div>
+      <div className="hidden md:block">
       <DndContext sensors={sensors} collisionDetection={boardCollisionDetection} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
         {swimlaneGroups.map((group) => (
           <div key={group.id} className="mb-6">
@@ -1215,6 +1256,8 @@ export default function BoardPage() {
           {activeTask && <TaskCard task={activeTask} onDelete={() => {}} onClick={() => {}} />}
         </DragOverlay>
       </DndContext>
+      </div>
+      </>
     )
   }
 
@@ -1577,8 +1620,10 @@ export default function BoardPage() {
         onOpenTask={(id) => handleOpenTask(workspaceId, id)}
       />
 
-      {/* REQ-157: selection bar + YouTrack-style command dialog (DD-050) */}
+      {/* REQ-157: selection bar + YouTrack-style command dialog (DD-050).
+          HW-21: desktop only — on mobile the MobileBoard shows a simple "Move to" sheet instead. */}
       {workspaceId && (
+        <div className="hidden md:block">
         <BulkEditBar
           projectId={workspaceId}
           selectedIds={[...selectedTaskIds]}
@@ -1602,6 +1647,7 @@ export default function BoardPage() {
           onQuickStatus={(s) => handleBulkStatus(s)}
           onDelete={handleBulkDelete}
         />
+        </div>
       )}
     </div>
   )

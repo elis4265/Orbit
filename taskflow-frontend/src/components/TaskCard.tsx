@@ -19,9 +19,13 @@ interface Props {
   onSelectToggle?: (id: string) => void
   compact?: boolean
   gridMode?: boolean
+  /** HW-21: always render the select checkbox (mobile has no hover to reveal it). */
+  alwaysShowSelect?: boolean
 }
 
-export default function TaskCard({ task, onDelete, onClick, assignee, onFilterByTag, childCount, priorityItem, selected, onSelectToggle, compact, gridMode }: Props) {
+export default function TaskCard({ task, onDelete, onClick, assignee, onFilterByTag, childCount, priorityItem, selected, onSelectToggle, compact, gridMode, alwaysShowSelect }: Props) {
+  // HW-21: the checkbox is hover-revealed on desktop; on touch (no hover) it must stay visible.
+  const selectOpacity = alwaysShowSelect ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
   })
@@ -107,6 +111,18 @@ export default function TaskCard({ task, onDelete, onClick, assignee, onFilterBy
         onClick={() => onClick(task)}
         className={`relative flex items-center gap-2 bg-gray-800 border ${accent} rounded-xl px-3 py-2 cursor-grab active:cursor-grabbing hover:border-brand/50 transition-colors group ${selected ? 'border-brand bg-brand/10' : 'border-gray-700'}`}
       >
+        {onSelectToggle && (
+          <input
+            type="checkbox"
+            checked={!!selected}
+            onChange={() => {}}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onSelectToggle(task.id) }}
+            data-checked={selected}
+            aria-label="Select task"
+            className={`h-4 w-4 flex-shrink-0 cursor-pointer rounded accent-brand data-[checked=true]:opacity-100 ${selectOpacity}`}
+          />
+        )}
         <span className="flex-shrink-0">
           <IssueTypeBadge type={task.issue_type ?? 'task'} size={12} />
         </span>
@@ -185,7 +201,7 @@ export default function TaskCard({ task, onDelete, onClick, assignee, onFilterBy
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => { e.stopPropagation(); onSelectToggle(task.id) }}
               data-checked={selected}
-              className="w-3.5 h-3.5 rounded accent-brand cursor-pointer opacity-0 group-hover:opacity-100 data-[checked=true]:opacity-100"
+              className={`w-3.5 h-3.5 rounded accent-brand cursor-pointer data-[checked=true]:opacity-100 ${selectOpacity}`}
             />
           )}
           <button
