@@ -23,7 +23,9 @@ class TaskReorderRequest(BaseModel):
 
 # --- Subtask Schemas ---
 class SubTaskBase(BaseModel):
-    title: str = Field(..., min_length=1, max_length=200)
+    # HW-34: subtasks are child Task rows (String(100)); 200 predates that
+    # migration and let 101–200-char titles through to a DB-level 500.
+    title: str = Field(..., min_length=1, max_length=100)
 
 
 class SubTaskCreate(SubTaskBase):
