@@ -40,5 +40,8 @@ export function initialBoardViewMode(): BoardViewMode {
     stored = null
   }
   if (stored && (VIEW_MODES as string[]).includes(stored)) return stored as BoardViewMode
-  return isSmallViewport() ? 'list' : 'kanban'
+  // HW-21: kanban is now the phone experience too (one status per screen, swipe), so it's
+  // the default everywhere. Was 'list' on small screens back when the multi-column board
+  // was unusable there. isSmallViewport() is kept for other callers.
+  return 'kanban'
 }

@@ -422,7 +422,7 @@ export default function BoardPage() {
     if (!selectedTaskIds.size) return
     const task_ids = [...selectedTaskIds]
     await bulkUpdateTasks.mutateAsync(
-      isCustomMode ? { task_ids, custom_status_id: col.id } : { task_ids, status: col.taskStatus },
+      isCustomMode ? { task_ids, custom_status_id: col.id } : { task_ids, status: col.taskStatus as TaskStatus },
     )
     clearSelection()
   }
@@ -1163,7 +1163,7 @@ export default function BoardPage() {
           onClearSelection={clearSelection}
           onOpenTask={(id) => setDetailTaskId(id)}
           onDeleteTask={(id) => deleteTask.mutate(id)}
-          onCreate={(col) => openCreate(col.taskStatus, isCustomMode ? col.id : null)}
+          onCreate={(col) => openCreate(col.taskStatus as TaskStatus, isCustomMode ? col.id : null)}
           onMove={moveSelectedToColumn}
         />
       </div>
@@ -1620,8 +1620,10 @@ export default function BoardPage() {
         onOpenTask={(id) => handleOpenTask(workspaceId, id)}
       />
 
-      {/* REQ-157: selection bar + YouTrack-style command dialog (DD-050) */}
+      {/* REQ-157: selection bar + YouTrack-style command dialog (DD-050).
+          HW-21: desktop only — on mobile the MobileBoard shows a simple "Move to" sheet instead. */}
       {workspaceId && (
+        <div className="hidden md:block">
         <BulkEditBar
           projectId={workspaceId}
           selectedIds={[...selectedTaskIds]}
@@ -1645,6 +1647,7 @@ export default function BoardPage() {
           onQuickStatus={(s) => handleBulkStatus(s)}
           onDelete={handleBulkDelete}
         />
+        </div>
       )}
     </div>
   )

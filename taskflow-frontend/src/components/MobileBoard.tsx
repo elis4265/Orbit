@@ -87,6 +87,8 @@ export default function MobileBoard({
         priorityItem={task.priority_id ? priorityMap[task.priority_id] : undefined}
         selected={selectedIds.has(task.id)}
         onSelectToggle={onToggleSelect}
+        compact
+        alwaysShowSelect
       />
     )
   }
