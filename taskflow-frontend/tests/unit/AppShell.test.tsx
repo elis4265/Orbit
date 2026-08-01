@@ -30,6 +30,10 @@ vi.mock('../../src/hooks/useProjects', () => ({
 vi.mock('../../src/hooks/useNotifications', () => ({
   useUnreadCount: () => ({ data: { count: 3 } }),
 }))
+// HW-37: TopBar reads members to decide whether to render admin-only controls
+vi.mock('../../src/hooks/useMembers', () => ({
+  useMembers: () => ({ data: [] }),
+}))
 vi.mock('../../src/components/SearchBar', () => ({
   default: () => <div data-testid="search-bar" />,
 }))

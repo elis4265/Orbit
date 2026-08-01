@@ -172,10 +172,16 @@ export default function HelpPage() {
             </P>
             <Sub title="Basic navigation">
               <Ul items={[
-                <><strong className="text-gray-300">Project selector</strong> (top-left) — switch between projects or create a new one.</>,
+                <><strong className="text-gray-300">Project selector</strong> (top-left) — switch between projects. Creating projects is reserved for the instance admin; everyone else joins by invite.</>,
                 <><strong className="text-gray-300">Board tabs</strong> — each project can have multiple boards (e.g. Frontend, Backend). Switch between them at the top.</>,
                 <><strong className="text-gray-300">Views</strong> — toggle between Kanban, List, Calendar and Gantt using the toolbar icons.</>,
                 <><strong className="text-gray-300">Header icons</strong> — Members, Audit Log, Project Settings, Notifications, and your avatar are always in the top-right.</>,
+              ]} />
+            </Sub>
+            <Sub title="Who can manage what">
+              <Ul items={[
+                <>Renaming or deleting a <strong className="text-gray-200">project</strong>, and creating, renaming, or deleting <strong className="text-gray-200">boards</strong>, is for project <strong className="text-gray-200">admins</strong> — the controls only appear if you hold the admin role (or own the project).</>,
+                <>Creating a <strong className="text-gray-200">new project</strong> is for the <strong className="text-gray-200">instance admin</strong> only. If you just registered and see no projects, ask your admin for an invite.</>,
               ]} />
             </Sub>
             <Sub title="Creating your first task">

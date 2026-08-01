@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { ChevronDown, Plus, Pencil, Trash2 } from 'lucide-react'
+import { errorDetail } from '../lib/apiError'
 import type { Project } from '../types'
 
 interface Props {
@@ -11,15 +12,21 @@ interface Props {
   onDelete: (id: string) => Promise<void>
   /** When provided, the "New project" button opens the full create dialog instead of the inline name field. */
   onRequestCreate?: () => void
+  /** Rename/delete are admin-only server-side — render their controls only when true. */
+  canManage: boolean
+  /** Project creation is superuser-only server-side (HW-37) — render "New project" only when true. */
+  canCreate: boolean
 }
 
-export default function ProjectSelector({ projects, activeId, onSelect, onCreate, onRename, onDelete, onRequestCreate }: Props) {
+export default function ProjectSelector({ projects, activeId, onSelect, onCreate, onRename, onDelete, onRequestCreate, canManage, canCreate }: Props) {
   const [open, setOpen] = useState(false)
   const [showInput, setShowInput] = useState(false)
   const [name, setName] = useState('')
   const [renaming, setRenaming] = useState(false)
   const [renameName, setRenameName] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
+  // REQ-169-6: a server rejection (e.g. role revoked mid-session) surfaces here.
+  const [actionError, setActionError] = useState('')
   const rootRef = useRef<HTMLDivElement>(null)
 
   const safeList = Array.isArray(projects) ? projects : []
@@ -66,9 +73,15 @@ export default function ProjectSelector({ projects, activeId, onSelect, onCreate
 
   async function handleRename() {
     if (!renameName.trim()) return
-    await onRename(activeId, renameName.trim())
-    setRenaming(false)
-    setOpen(false)
+    try {
+      await onRename(activeId, renameName.trim())
+      setRenaming(false)
+      setOpen(false)
+      setActionError('')
+    } catch (err) {
+      setActionError(errorDetail(err, 'Could not rename the project.'))
+      setRenaming(false)
+    }
   }
 
   function cancelRename() {
@@ -76,9 +89,15 @@ export default function ProjectSelector({ projects, activeId, onSelect, onCreate
   }
 
   async function handleDelete() {
-    await onDelete(activeId)
-    setConfirmDelete(false)
-    setOpen(false)
+    try {
+      await onDelete(activeId)
+      setConfirmDelete(false)
+      setOpen(false)
+      setActionError('')
+    } catch (err) {
+      setActionError(errorDetail(err, 'Could not delete the project.'))
+      setConfirmDelete(false)
+    }
   }
 
   return (
@@ -118,7 +137,7 @@ export default function ProjectSelector({ projects, activeId, onSelect, onCreate
                   p.name
                 )}
               </button>
-              {p.id === activeId && !renaming && (
+              {p.id === activeId && !renaming && canManage && (
                 <>
                   {confirmDelete ? (
                     <div className="flex items-center gap-1 px-1" onClick={(e) => e.stopPropagation()}>
@@ -158,6 +177,10 @@ export default function ProjectSelector({ projects, activeId, onSelect, onCreate
               )}
             </div>
           ))}
+          {actionError && (
+            <p className="px-4 py-2 text-xs text-red-400 border-t border-gray-700">{actionError}</p>
+          )}
+          {canCreate && (
           <div className="border-t border-gray-700 p-2">
             {showInput ? (
               <div className="flex gap-2">
@@ -189,6 +212,7 @@ export default function ProjectSelector({ projects, activeId, onSelect, onCreate
               </button>
             )}
           </div>
+          )}
         </div>
       )}
     </div>

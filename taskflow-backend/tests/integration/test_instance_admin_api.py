@@ -193,14 +193,14 @@ async def test_superuser_flag_never_grants_project_access(db_session):
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         _, headers = await _make_superuser(ac, db_session, "admin5@taskflow.io")
         pleb = await _register_and_verify(ac, db_session, "owner@taskflow.io")
-        pleb_token = await _login_token(ac, "owner@taskflow.io")
 
-        proj = await ac.post(
-            "/api/v1/projects", json={"name": "Private"},
-            headers={"Authorization": f"Bearer {pleb_token}"},
+        # HW-37: plebs can no longer create projects via the API, and the point
+        # here is the read gate — seed the pleb's project directly instead.
+        from app.repositories.project import ProjectRepository
+        project = await ProjectRepository(db_session).create(
+            {"key": "PRV", "name": "Private", "owner_id": pleb.id}
         )
-        project_id = proj.json()["id"]
 
         # Superuser is not a member — project reads must 403/404, not leak
-        resp = await ac.get(f"/api/v1/projects/{project_id}/tasks", headers=headers)
+        resp = await ac.get(f"/api/v1/projects/{project.id}/tasks", headers=headers)
         assert resp.status_code in (403, 404)
