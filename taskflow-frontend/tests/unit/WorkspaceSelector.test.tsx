@@ -24,6 +24,8 @@ describe('REQ-008 — Rename Workspace', () => {
         onCreate={vi.fn()}
         onRename={vi.fn()}
         onDelete={vi.fn()}
+        canManage
+        canCreate
       />
     )
     openDropdown()
@@ -41,6 +43,8 @@ describe('REQ-008 — Rename Workspace', () => {
         onCreate={vi.fn()}
         onRename={onRename}
         onDelete={vi.fn()}
+        canManage
+        canCreate
       />
     )
     openDropdown()
@@ -61,6 +65,8 @@ describe('REQ-008 — Rename Workspace', () => {
         onCreate={vi.fn()}
         onRename={onRename}
         onDelete={vi.fn()}
+        canManage
+        canCreate
       />
     )
     openDropdown()
@@ -79,6 +85,8 @@ describe('REQ-008 — Rename Workspace', () => {
         onCreate={vi.fn()}
         onRename={onRename}
         onDelete={vi.fn()}
+        canManage
+        canCreate
       />
     )
     openDropdown()
@@ -103,6 +111,8 @@ describe('REQ-009 — Delete Workspace', () => {
         onCreate={vi.fn()}
         onRename={vi.fn()}
         onDelete={vi.fn()}
+        canManage
+        canCreate
       />
     )
     openDropdown()
@@ -120,6 +130,8 @@ describe('REQ-009 — Delete Workspace', () => {
         onCreate={vi.fn()}
         onRename={vi.fn()}
         onDelete={onDelete}
+        canManage
+        canCreate
       />
     )
     openDropdown()

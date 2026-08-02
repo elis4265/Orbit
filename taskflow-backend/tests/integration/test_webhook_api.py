@@ -16,7 +16,8 @@ pytestmark = pytest.mark.integration
 @pytest_asyncio.fixture
 async def seeded(db_session):
     users = UserRepository(db_session)
-    admin = await users.create({"email": f"wh_{uuid.uuid4().hex[:6]}@taskflow.io", "hashed_password": "x"})
+    admin = await users.create({"email": f"wh_{uuid.uuid4().hex[:6]}@taskflow.io", "hashed_password": "x",
+                                "is_superuser": True})  # HW-37: one case creates a project via the API
     outsider = await users.create({"email": f"out_{uuid.uuid4().hex[:6]}@taskflow.io", "hashed_password": "x"})
     project = await ProjectRepository(db_session).create({"key": "WH", "name": "P", "owner_id": admin.id})
     return admin, outsider, project

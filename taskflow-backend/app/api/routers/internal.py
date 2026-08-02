@@ -25,6 +25,9 @@ class TestUserRequest(BaseModel):
     email: str
     password: str
     username: str
+    # HW-37: project creation is superuser-only; load/e2e harnesses that create
+    # projects opt in here. Dev-only — the endpoint 404s outside development.
+    is_superuser: bool = False
 
 
 @router.post("/test/create-user", status_code=201)
@@ -41,6 +44,7 @@ async def create_test_user(
         username=body.username,
         hashed_password=hash_password(body.password),
         is_verified=True,
+        is_superuser=body.is_superuser,
     )
     session.add(user)
     await session.commit()

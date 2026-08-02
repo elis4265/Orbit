@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Pencil, Trash2, Plus, Layers, Zap } from 'lucide-react'
+import { errorDetail } from '../lib/apiError'
 import type { Board } from '../types'
 
 export type SpecialTab = 'backlog' | 'active-sprint'
@@ -14,17 +15,21 @@ interface Props {
   onCreate: (name: string) => Promise<void>
   onRename: (id: string, name: string) => Promise<void>
   onDelete: (id: string) => Promise<void>
+  /** Board create/rename/delete are admin-only server-side — render their controls only when true. */
+  canManage: boolean
 }
 
 export default function BoardTabs({
   boards, activeId, activeSpecialTab, hasActiveSprint,
-  onSelect, onSelectSpecial, onCreate, onRename, onDelete,
+  onSelect, onSelectSpecial, onCreate, onRename, onDelete, canManage,
 }: Props) {
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameName, setRenameName] = useState('')
   const [showInput, setShowInput] = useState(false)
   const [newName, setNewName] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  // REQ-169-6: a server rejection (e.g. role revoked mid-session) surfaces here.
+  const [actionError, setActionError] = useState('')
   const rootRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -46,15 +51,35 @@ export default function BoardTabs({
 
   async function handleRename(id: string) {
     if (!renameName.trim()) return
-    await onRename(id, renameName.trim())
+    try {
+      await onRename(id, renameName.trim())
+      setActionError('')
+    } catch (err) {
+      setActionError(errorDetail(err, 'Could not rename the board.'))
+    }
     setRenamingId(null)
   }
 
   async function handleCreate() {
     if (!newName.trim()) return
-    await onCreate(newName.trim())
-    setNewName('')
-    setShowInput(false)
+    try {
+      await onCreate(newName.trim())
+      setNewName('')
+      setShowInput(false)
+      setActionError('')
+    } catch (err) {
+      setActionError(errorDetail(err, 'Could not create the board.'))
+    }
+  }
+
+  async function handleDelete(id: string) {
+    try {
+      await onDelete(id)
+      setActionError('')
+    } catch (err) {
+      setActionError(errorDetail(err, 'Could not delete the board.'))
+    }
+    setConfirmDeleteId(null)
   }
 
   function specialTabClass(tab: SpecialTab) {
@@ -133,13 +158,13 @@ export default function BoardTabs({
             </button>
           )}
 
-          {board.id === activeId && activeSpecialTab === null && renamingId !== board.id && (
+          {board.id === activeId && activeSpecialTab === null && renamingId !== board.id && canManage && (
             <>
               {confirmDeleteId === board.id ? (
                 <div className="flex items-center gap-1 px-1 max-md:shrink-0">
                   <span className="text-xs text-red-400 whitespace-nowrap">Delete?</span>
                   <button
-                    onClick={async () => { await onDelete(board.id); setConfirmDeleteId(null) }}
+                    onClick={() => handleDelete(board.id)}
                     className="text-xs text-red-400 hover:text-red-300 font-medium px-1 transition-colors"
                   >
                     Yes
@@ -174,6 +199,7 @@ export default function BoardTabs({
         </div>
       ))}
 
+      {canManage && (
       <div className="ml-2 flex items-center max-md:shrink-0">
         {showInput ? (
           <div className="flex items-center gap-1 max-md:shrink-0">
@@ -207,6 +233,10 @@ export default function BoardTabs({
           </button>
         )}
       </div>
+      )}
+      {actionError && (
+        <span className="text-xs text-red-400 px-2 whitespace-nowrap max-md:shrink-0">{actionError}</span>
+      )}
     </div>
   )
 }

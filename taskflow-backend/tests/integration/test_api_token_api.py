@@ -18,6 +18,7 @@ async def seeded(db_session):
     user = await UserRepository(db_session).create({
         "email": f"pat_{uuid.uuid4().hex[:6]}@taskflow.io",
         "hashed_password": "x",
+        "is_superuser": True,  # HW-37: the write-scope PAT test creates a project
     })
     project = await ProjectRepository(db_session).create({"key": "PT", "name": "P", "owner_id": user.id})
     return user, project

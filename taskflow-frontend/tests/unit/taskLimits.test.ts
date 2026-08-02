@@ -70,6 +70,31 @@ describe('HW-34 — validationMessage (server 422 → inline text)', () => {
     expect(validationMessage(err)).toBe('Summary: too long Due date: invalid date')
   })
 
+  it('[HW-37] reads the backend envelope shape {"error": {detail: [...]}}', () => {
+    const err = {
+      response: {
+        status: 422,
+        data: {
+          error: {
+            code: 'VALIDATION_ERROR', message: 'Validation failed.',
+            detail: [{ loc: ['body', 'title'], msg: 'String should have at most 100 characters' }],
+          },
+        },
+      },
+    }
+    expect(validationMessage(err)).toBe('Summary: String should have at most 100 characters')
+  })
+
+  it('[HW-37] an HTTPException 422 envelope surfaces its message', () => {
+    const err = {
+      response: {
+        status: 422,
+        data: { error: { code: 'VALIDATION_ERROR', message: 'INVALID_HIERARCHY', detail: {} } },
+      },
+    }
+    expect(validationMessage(err)).toBe('INVALID_HIERARCHY')
+  })
+
   it('returns null for non-422 and shapeless errors', () => {
     expect(validationMessage(new Error('network down'))).toBeNull()
     expect(validationMessage({ response: { status: 500, data: {} } })).toBeNull()

@@ -28,6 +28,9 @@ async def _register_login(ac: AsyncClient, db_session, email: str, password: str
         .order_by(EmailVerification.created_at.desc())
     )).scalars().first()
     await ac.post("/api/v1/auth/verify-email", json={"email": email, "code": ev.code, "new_password": password})
+    # HW-37: project creation is superuser-only; DD-048 keeps project RBAC unaffected.
+    user.is_superuser = True
+    await db_session.commit()
     resp = await ac.post("/api/v1/auth/login", data={"username": email, "password": password})
     return resp.json()["access_token"], user
 

@@ -11,7 +11,9 @@ import ProjectSelector from './ProjectSelector'
 import CreateProjectModal from './CreateProjectModal'
 import { useMe, useLogout } from '../hooks/useAuth'
 import { useProjects, useCreateProject, useRenameProject, useDeleteProject } from '../hooks/useProjects'
+import { useMembers } from '../hooks/useMembers'
 import { useUnreadCount } from '../hooks/useNotifications'
+import { canManageProject } from '../lib/rbac'
 import type { Project, ProjectMode } from '../types'
 
 const THEME_MENU_OPTIONS: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
@@ -100,6 +102,10 @@ export default function TopBar({ activeProjectId, notifOpen, onToggleNotif, navO
   const createProject = useCreateProject()
   const renameProject = useRenameProject()
   const deleteProject = useDeleteProject()
+  // Rename/delete are admin-only server-side — only render their controls for admins.
+  const { data: members = [] } = useMembers(activeProjectId)
+  const activeProject = projects.find((p) => p.id === activeProjectId)
+  const canManage = canManageProject(activeProject, user?.id, members)
   const { data: unreadData } = useUnreadCount()
   const unreadCount = unreadData?.count ?? 0
 
@@ -164,6 +170,8 @@ export default function TopBar({ activeProjectId, notifOpen, onToggleNotif, navO
           onRequestCreate={() => setCreateOpen(true)}
           onRename={async (id, name) => { await renameProject.mutateAsync({ id, name }) }}
           onDelete={handleDeleteProject}
+          canManage={canManage}
+          canCreate={!!user?.is_superuser}
         />
       </div>
       {projects.length > 0 && (

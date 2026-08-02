@@ -13,16 +13,19 @@ export function uniqueEmail(prefix: string): string {
   return `e2e-${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@test.com`
 }
 
-/** Create a verified user via the dev-only internal endpoint. */
+/** Create a verified user via the dev-only internal endpoint.
+ * Superuser by default: most specs create their own project (HW-37 made
+ * creation superuser-only); pass false for a plain member/viewer persona. */
 export async function createVerifiedUser(
   email: string,
   username: string,
   password = E2E_PASSWORD,
+  isSuperuser = true,
 ): Promise<string> {
   const ctx = await request.newContext()
   try {
     const res = await ctx.post(`${API_URL}/internal/test/create-user`, {
-      data: { email, password, username },
+      data: { email, password, username, is_superuser: isSuperuser },
     })
     if (!res.ok()) throw new Error(`create-user failed ${res.status()}: ${await res.text()}`)
     const { access_token } = await res.json() as { access_token: string }

@@ -33,15 +33,23 @@ const FIELD_LABELS: Record<string, string> = {
 }
 
 type FastApiDetail = string | Array<{ loc?: Array<string | number>; msg?: string }>
+type ErrorBody = { detail?: FastApiDetail; error?: { message?: string; detail?: FastApiDetail } }
 
-// Map a server 422 (FastAPI/Pydantic shape) to a human-readable inline message.
+// Map a server 422 to a human-readable inline message. The backend wraps errors
+// as {"error": {message, detail}} (app/main.py validation_error_handler, HW-37
+// fix — the bare FastAPI {"detail": [...]} shape is kept as a fallback).
 // Returns null when the error is not a 422 or carries no usable detail — the
 // caller falls back to a generic message so creation never fails silently.
 export function validationMessage(err: unknown): string | null {
-  const resp = (err as { response?: { status?: number; data?: { detail?: FastApiDetail } } })?.response
+  const resp = (err as { response?: { status?: number; data?: ErrorBody } })?.response
   if (resp?.status !== 422) return null
-  const detail = resp.data?.detail
+  const detail = resp.data?.error?.detail ?? resp.data?.detail
   if (typeof detail === 'string') return detail
+  if ((!Array.isArray(detail) || detail.length === 0) && typeof resp.data?.error?.message === 'string'
+      && resp.data.error.message && resp.data.error.message !== 'Validation failed.') {
+    // An HTTPException 422 (e.g. INVALID_HIERARCHY) carries its text in message.
+    return resp.data.error.message
+  }
   if (!Array.isArray(detail) || detail.length === 0) return null
   return detail
     .map((d) => {

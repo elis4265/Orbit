@@ -12,6 +12,7 @@ from app.api.dependencies import (
     get_current_user,
     get_admin_project,
     get_audit_log_service,
+    get_superuser,
     get_viewer_project,
     get_db_session,
     get_task_repository,
@@ -33,7 +34,9 @@ async def create_project(
     payload: ProjectCreate,
     project_service: ProjectService = Depends(get_project_service),
     audit_svc: AuditLogService = Depends(get_audit_log_service),
-    current_user: User = Depends(get_current_user),
+    # HW-37: creation is instance-admin territory — per-project roles can't gate an
+    # action that precedes the project. The 5-per-user cap stays as a backstop.
+    current_user: User = Depends(get_superuser),
 ):
     try:
         project = await project_service.create_project(name=payload.name, owner_id=current_user.id, mode=payload.mode)

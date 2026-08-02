@@ -63,6 +63,7 @@ import { initialBoardViewMode, VIEW_PREFERENCE_KEY, type BoardViewMode } from '.
 import { applyTaskFilters } from '../lib/taskFilter'
 import { landingProject, readLastProjectSeg } from '../lib/lastProject'
 import { resolveProjectId } from '../lib/projectResolve'
+import { canManageProject } from '../lib/rbac'
 import { epicDoneGateCount } from '../lib/epicGate'
 import { useRelatedToMe } from '../hooks/useRelatedToMe'
 import { packGridPositions, tasksToGridReorderItems, nextFreeCell } from '../lib/gridPacker'
@@ -148,12 +149,14 @@ export default function BoardPage() {
   const autoOpenedCreateRef = useRef(false)
   // First run: a freshly registered user has no projects — open the create dialog
   // once so they land on a guided choice instead of a bare empty board.
+  // HW-37: creation is superuser-only, so everyone else gets the invite-me
+  // empty state instead of a dialog whose submit would 403.
   useEffect(() => {
-    if (!projectsLoading && projects.length === 0 && !autoOpenedCreateRef.current) {
+    if (!projectsLoading && projects.length === 0 && user?.is_superuser && !autoOpenedCreateRef.current) {
       autoOpenedCreateRef.current = true
       setCreateProjectOpen(true)
     }
-  }, [projectsLoading, projects.length])
+  }, [projectsLoading, projects.length, user?.is_superuser])
 
   const [showHelp, setShowHelp] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -314,10 +317,7 @@ export default function BoardPage() {
 
   // ── Project (admin-defined) board scope filter ──────────────────────────────
   const updateBoardFilter = useUpdateBoardFilter(workspaceId)
-  const isProjectAdmin =
-    !!user &&
-    (activeProject?.owner_id === user.id ||
-      members.some((m) => m.id === user.id && m.role === 'admin'))
+  const isProjectAdmin = canManageProject(activeProject, user?.id, members)
 
   const currentBoard = boards.find((b) => b.id === boardId)
   const projectFilter = useMemo(
@@ -1063,14 +1063,20 @@ export default function BoardPage() {
         <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
           <div>
             <p className="text-gray-200 font-medium">No projects yet</p>
-            <p className="text-gray-500 text-sm mt-1">Create your first project and choose how its workflow behaves.</p>
+            <p className="text-gray-500 text-sm mt-1">
+              {user?.is_superuser
+                ? 'Create your first project and choose how its workflow behaves.'
+                : 'Project creation is handled by your instance admin — ask them for an invite to get started.'}
+            </p>
           </div>
-          <button
-            onClick={() => setCreateProjectOpen(true)}
-            className="flex items-center gap-2 text-sm bg-brand hover:bg-brand-hover text-white font-medium px-4 py-2 rounded-lg transition-colors"
-          >
-            <Plus size={16} /> Create project
-          </button>
+          {user?.is_superuser && (
+            <button
+              onClick={() => setCreateProjectOpen(true)}
+              className="flex items-center gap-2 text-sm bg-brand hover:bg-brand-hover text-white font-medium px-4 py-2 rounded-lg transition-colors"
+            >
+              <Plus size={16} /> Create project
+            </button>
+          )}
         </div>
       )
     }
@@ -1523,6 +1529,7 @@ export default function BoardPage() {
           onCreate={handleCreateBoard}
           onRename={async (id, name) => { await renameBoard.mutateAsync({ id, name }) }}
           onDelete={handleDeleteBoard}
+          canManage={isProjectAdmin}
         />
       )}
 
