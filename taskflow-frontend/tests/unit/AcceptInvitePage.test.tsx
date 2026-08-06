@@ -7,12 +7,18 @@ import * as useAuth from '../../src/hooks/useAuth'
 
 const mockAccept = vi.fn()
 const mockNavigate = vi.fn()
+const mockGetMetadata = vi.fn()
 
 vi.mock('../../src/hooks/useMembers', () => ({
   useAcceptInvite: vi.fn(),
   useMembers: vi.fn(),
   useInviteMember: vi.fn(),
   useRemoveMember: vi.fn(),
+}))
+
+// HW-23: the page fetches invite metadata to route logged-out visitors
+vi.mock('../../src/api/client', () => ({
+  memberApi: { getInviteMetadata: (token: string) => mockGetMetadata(token) },
 }))
 
 vi.mock('../../src/hooks/useAuth', () => ({
@@ -53,6 +59,7 @@ function setup(token = 'abc-token', authenticated = true) {
 beforeEach(() => {
   mockAccept.mockReset()
   mockNavigate.mockReset()
+  mockGetMetadata.mockReset()
 })
 
 // ── REQ-040: Authenticated user ───────────────────────────────────────────────
@@ -91,16 +98,35 @@ describe('REQ-040 — Accept Invite Page (authenticated)', () => {
 
 // ── REQ-040: Unauthenticated user ─────────────────────────────────────────────
 
-describe('REQ-040 — Accept Invite Page (unauthenticated)', () => {
-  it('[REQ-040] redirects to /register?invite=:token when not authenticated', async () => {
+describe('REQ-040/HW-23 — Accept Invite Page (unauthenticated)', () => {
+  it('[HW-23] routes a NEW invitee to /register?invite=:token', async () => {
+    mockGetMetadata.mockResolvedValue({ user_exists: false, email: 'new@test.io' })
     setup('my-token', false)
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(
       '/register?invite=my-token', { replace: true }
     ))
   })
 
-  it('[REQ-040] does not call acceptInvite when unauthenticated', () => {
+  it('[HW-23] routes a REGISTERED invitee to /login?invite=:token', async () => {
+    mockGetMetadata.mockResolvedValue({ user_exists: true, email: 'known@test.io' })
+    setup('my-token', false)
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(
+      '/login?invite=my-token', { replace: true }
+    ))
+  })
+
+  it('[HW-23] falls back to /register when metadata fetch fails (register owns the error surface)', async () => {
+    mockGetMetadata.mockRejectedValue(new Error('404'))
+    setup('bad-token', false)
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(
+      '/register?invite=bad-token', { replace: true }
+    ))
+  })
+
+  it('[REQ-040] does not call acceptInvite when unauthenticated', async () => {
+    mockGetMetadata.mockResolvedValue({ user_exists: false, email: 'x@test.io' })
     setup('abc-token', false)
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalled())
     expect(mockAccept).not.toHaveBeenCalled()
   })
 })

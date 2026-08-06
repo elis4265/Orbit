@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { useLogin } from '../hooks/useAuth'
@@ -32,6 +32,19 @@ export default function LoginPage() {
   const [signUpOpen, setSignUpOpen] = useState(false)
   const [forgotOpen, setForgotOpen] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  // HW-23: arriving via an invite — pre-fill the invited email and show where
+  // the invite leads. The field stays editable (the token is the capability;
+  // accepting with another signed-in account is allowed).
+  const [inviteWorkspace, setInviteWorkspace] = useState<string | null>(null)
+  useEffect(() => {
+    if (!inviteToken) return
+    memberApi.getInviteMetadata(inviteToken)
+      .then((meta) => {
+        setInviteWorkspace(meta.workspace_name)
+        setEmail((prev) => prev || meta.email)
+      })
+      .catch(() => { /* invalid invite — accept() after login owns the error */ })
+  }, [inviteToken])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -70,7 +83,12 @@ export default function LoginPage() {
           </div>
 
           <div className="bg-gray-900 rounded-2xl p-8 shadow-xl border border-gray-800">
-            <h2 className="text-base font-semibold text-gray-100 mb-6">Sign in</h2>
+            <h2 className={`text-base font-semibold text-gray-100 ${inviteWorkspace ? 'mb-1' : 'mb-6'}`}>Sign in</h2>
+            {inviteWorkspace && (
+              <p className="text-xs text-gray-500 mb-5">
+                to join <span className="text-gray-300">{inviteWorkspace}</span>
+              </p>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <input

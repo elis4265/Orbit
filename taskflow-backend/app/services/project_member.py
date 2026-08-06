@@ -99,12 +99,16 @@ class ProjectMemberService:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Invite not found.")
         project = await self.project_repo.get(invite.project_id)
         now = datetime.now(timezone.utc)
+        # HW-23: exposed only behind the invite token (the capability) — routes
+        # registered invitees to Sign in instead of a doomed Register form.
+        existing = await self.user_repo.get_by_email(invite.email)
         return {
             "project_id": invite.project_id,
             "workspace_name": project.name if project else "",
             "email": invite.email,
             "expired": invite.expires_at < now,
             "used": invite.used,
+            "user_exists": existing is not None,
         }
 
     async def accept(self, token: uuid.UUID, user: User) -> uuid.UUID:
