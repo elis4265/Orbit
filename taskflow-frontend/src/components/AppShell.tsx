@@ -10,6 +10,7 @@ import {
   rememberProjectSeg,
   resolveLastProject,
 } from '../lib/lastProject'
+import { resolveProjectId } from '../lib/projectResolve'
 import type { Project } from '../types'
 
 export interface AppShellContext {
@@ -23,12 +24,14 @@ export function useAppShell(): AppShellContext | undefined {
 }
 
 // Layout routes can't see child params — derive the project from the pathname.
+// id resolves via lib/projectResolve (HW-33/HW-37): '' while the key is
+// unresolved, so shell-level queries (TopBar's useMembers) stay disabled
+// instead of firing UUID-typed endpoints with a raw key and 422ing.
 function resolveShellProject(pathname: string, projects: Project[]): { id: string; seg: string } {
   const param = pathname.match(/^\/projects\/([^/]+)/)?.[1]
-  const project = param
-    ? projects.find((p) => p.id === param || p.key?.toLowerCase() === param.toLowerCase())
-    : undefined
-  return { id: project?.id ?? param ?? '', seg: project?.key ?? param ?? '' }
+  const id = resolveProjectId(param, projects)
+  const project = projects.find((p) => p.id === id)
+  return { id, seg: project?.key ?? param ?? '' }
 }
 
 // Project context: URL first, else remembered — keeps global pages' nav populated
