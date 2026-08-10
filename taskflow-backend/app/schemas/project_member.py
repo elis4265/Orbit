@@ -15,6 +15,8 @@ class InviteMetadataResponse(BaseModel):
     email: str
     expired: bool
     used: bool
+    # HW-23: lets the invite page route registered invitees to Sign in
+    user_exists: bool
 
 
 class InviteResponse(BaseModel):

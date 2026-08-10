@@ -408,6 +408,8 @@ export interface InviteMetadata {
   email: string
   expired: boolean
   used: boolean
+  /** HW-23: true when an account already exists for the invited email */
+  user_exists: boolean
 }
 
 export interface TokenResponse {

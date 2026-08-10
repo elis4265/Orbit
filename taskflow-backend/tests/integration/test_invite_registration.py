@@ -69,6 +69,24 @@ async def test_get_invite_metadata_returns_workspace_info(db_session):
     assert data["project_id"] == str(ws.id)
     assert data["expired"] is False
     assert data["used"] is False
+    # HW-23: no account for this email yet
+    assert data["user_exists"] is False
+
+
+@pytest.mark.asyncio
+async def test_get_invite_metadata_flags_existing_account(db_session):
+    """[HW-23] user_exists is true when the invited email already has an account —
+    the invite page routes those users to Sign in instead of Register."""
+    owner = await _make_user(db_session, "meta_ex1")
+    invitee = await _make_user(db_session, "meta_ex2")
+    ws = await _make_workspace(db_session, owner)
+    invite = await _make_invite(db_session, ws.id, owner.id, invitee.email)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        resp = await ac.get(f"/api/v1/invites/{invite.token}")
+
+    assert resp.status_code == 200
+    assert resp.json()["user_exists"] is True
 
 
 @pytest.mark.asyncio

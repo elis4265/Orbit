@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { http } from '../api/client'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { http, memberApi } from '../api/client'
 
 // REQ-150 — real Google SSO. Renders only when the operator configured
 // GOOGLE_OAUTH_CLIENT_ID (checked via /auth/providers); otherwise nothing,
@@ -20,6 +20,10 @@ declare global {
 
 export default function GoogleLoginButton() {
   const navigate = useNavigate()
+  const [params] = useSearchParams()
+  // HW-23 (REQ-170-2): every sign-in method accepts a pending invite — SSO
+  // used to drop the token and land the invitee on '/' outside the project.
+  const inviteToken = params.get('invite')
   const buttonRef = useRef<HTMLDivElement>(null)
   const [clientId, setClientId] = useState<string | null>(null)
   const [error, setError] = useState(false)
@@ -41,6 +45,15 @@ export default function GoogleLoginButton() {
           try {
             const res = await http.post<{ access_token: string }>('/auth/google', { credential })
             localStorage.setItem('access_token', res.data.access_token)
+            if (inviteToken) {
+              try {
+                const joined = await memberApi.acceptInvite(inviteToken)
+                navigate(`/projects/${joined.project_id}`)
+                return
+              } catch {
+                // invalid/expired invite — signed in fine, land on the board
+              }
+            }
             navigate('/')
           } catch {
             setError(true)
@@ -66,7 +79,7 @@ export default function GoogleLoginButton() {
     script.async = true
     script.onload = init
     document.head.appendChild(script)
-  }, [clientId, navigate])
+  }, [clientId, navigate, inviteToken])
 
   if (!clientId) return null
   return (

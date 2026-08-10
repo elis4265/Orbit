@@ -70,6 +70,14 @@ describe('REQ-042 — Login Page with invite token', () => {
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/'))
   })
 
+  it('[HW-23] pre-fills the invited email and names the workspace', async () => {
+    renderLogin('?invite=abc-invite-token')
+    await waitFor(() =>
+      expect((screen.getByPlaceholderText('Email') as HTMLInputElement).value).toBe('invited@test.io')
+    )
+    expect(screen.getByText(/orbit ws/i)).toBeInTheDocument()
+  })
+
   it('[REQ-042] shows error when accept fails after login', async () => {
     const { http, HttpResponse } = await import('msw')
     server.use(

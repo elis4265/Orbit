@@ -155,4 +155,12 @@ export const handlers = [
   http.post(`${BASE}/invites/:token/accept`, () =>
     HttpResponse.json({ project_id: 'ws-1' })
   ),
+
+  // Invite metadata — HW-23: LoginPage pre-fills the invited email from it
+  http.get(`${BASE}/invites/:token`, () =>
+    HttpResponse.json({
+      project_id: 'ws-1', workspace_name: 'Orbit WS', email: 'invited@test.io',
+      expired: false, used: false, user_exists: true,
+    })
+  ),
 ]

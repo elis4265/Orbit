@@ -271,9 +271,11 @@ def test_invite_metadata_response_valid():
         email="user@example.com",
         expired=False,
         used=False,
+        user_exists=False,  # HW-23: routes the invitee to Sign in vs Register
     )
     assert m.workspace_name == "Acme"
     assert m.expired is False
+    assert m.user_exists is False
 
 
 def test_invite_response_valid():

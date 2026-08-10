@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAcceptInvite } from '../hooks/useMembers'
 import { useMe } from '../hooks/useAuth'
+import { memberApi } from '../api/client'
 
 export default function AcceptInvitePage() {
   const { token } = useParams<{ token: string }>()
@@ -13,12 +14,21 @@ export default function AcceptInvitePage() {
   useEffect(() => {
     if (isLoading || !token) return
 
-    if (!user) {
-      navigate(`/register?invite=${token}`, { replace: true })
-      return
-    }
-
     let stale = false
+
+    if (!user) {
+      // HW-23: a registered invitee gets Sign in (password + SSO), not a
+      // Register form that would reject the duplicate email. Metadata fetch
+      // failure falls back to Register, which owns the invite error surface.
+      memberApi.getInviteMetadata(token)
+        .then((meta) => {
+          if (!stale) navigate(meta.user_exists ? `/login?invite=${token}` : `/register?invite=${token}`, { replace: true })
+        })
+        .catch(() => {
+          if (!stale) navigate(`/register?invite=${token}`, { replace: true })
+        })
+      return () => { stale = true }
+    }
 
     acceptInvite(token)
       .then((res) => { if (!stale) navigate(`/projects/${res.project_id}`) })

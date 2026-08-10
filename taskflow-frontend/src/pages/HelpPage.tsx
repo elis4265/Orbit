@@ -1180,6 +1180,7 @@ valid = hmac.compare_digest(expected, request.headers["X-Orbit-Signature"])`}
           {/* ── Members & Roles ─────────────────────────────────────────── */}
           <Section id="members-roles" title="Members & Roles">
             <P>Invite people to a project under <strong className="text-gray-200">Project Settings → Members</strong> (also reachable via the Users icon in the header, or <Code>M</Code>). Invites are sent by email. The member list is visible to every role; inviting, changing roles, and removing members require project admin.</P>
+            <P>Opening an invite link takes a new person to <strong className="text-gray-200">Register</strong>, and someone who already has an Orbit account to <strong className="text-gray-200">Sign in</strong> (password or Google) — either way the invite is applied automatically after they're in.</P>
             <Table
               headers={['Role', 'What they can do']}
               rows={[

@@ -274,6 +274,19 @@ export default function RegisterPage() {
               {busy ? 'Please wait…' : requiresPassword ? 'Create account' : 'Continue'}
             </button>
           </form>
+
+          {inviteToken && (
+            <p className="text-center text-sm text-gray-500 mt-6">
+              Already have an account?{' '}
+              <button
+                type="button"
+                onClick={() => navigate(`/login?invite=${inviteToken}`)}
+                className="text-brand hover:underline"
+              >
+                Sign in
+              </button>
+            </p>
+          )}
         </div>
       </div>
     </div>
