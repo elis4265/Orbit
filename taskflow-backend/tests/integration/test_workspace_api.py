@@ -6,6 +6,7 @@ from sqlalchemy import select
 from app.main import app
 from app.api.dependencies import get_current_user
 from app.models.user import User
+from app.services.project import MAX_PROJECTS_PER_USER
 
 
 @pytest.mark.asyncio
@@ -20,7 +21,6 @@ async def test_create_workspace_api_endpoint(db_session):
         id=test_user_id,
         email=f"tester_{unique_suffix}@taskflow.io",
         hashed_password="mock-secret-argon-hash-string",
-        is_superuser=True,  # HW-37: project creation is superuser-only
     )
     
     # 2. Seed the database safely
@@ -52,8 +52,9 @@ async def test_create_workspace_api_endpoint(db_session):
     app.dependency_overrides.clear()
 
 @pytest.mark.asyncio
-async def test_create_workspace_requires_superuser(db_session):
-    """HW-37 (REQ-169-3): a regular authenticated user cannot create projects."""
+async def test_create_workspace_allows_regular_user(db_session):
+    """HW-40: creation is open to any authenticated user again. is_superuser is the
+    instance-admin gate (DD-048) and must not gate a routine capability."""
     regular_user = User(
         id=uuid.uuid4(),
         email=f"regular_{uuid.uuid4().hex[:6]}@taskflow.io",
@@ -68,9 +69,37 @@ async def test_create_workspace_requires_superuser(db_session):
     app.dependency_overrides[get_current_user] = mock_get_current_user
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        response = await ac.post("/api/v1/projects", json={"name": "Should Not Exist"})
+        response = await ac.post("/api/v1/projects", json={"name": "Plebs Can Ship"})
 
     app.dependency_overrides.clear()
-    assert response.status_code == 403
-    # app/main.py wraps HTTPException as {"error": {code, message, detail}}
-    assert "Superuser" in response.json()["error"]["message"]
+    assert response.status_code == 201
+    assert response.json()["owner_id"] == str(regular_user.id)
+    assert regular_user.is_superuser is False
+
+
+@pytest.mark.asyncio
+async def test_create_workspace_enforces_per_user_cap(db_session):
+    """HW-40: with the superuser gate gone, MAX_PROJECTS_PER_USER is the only backstop."""
+    user = User(
+        id=uuid.uuid4(),
+        email=f"capped_{uuid.uuid4().hex[:6]}@taskflow.io",
+        hashed_password="mock-secret-argon-hash-string",
+    )
+    db_session.add(user)
+    await db_session.commit()
+
+    async def mock_get_current_user():
+        return user
+
+    app.dependency_overrides[get_current_user] = mock_get_current_user
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        for i in range(MAX_PROJECTS_PER_USER):
+            ok = await ac.post("/api/v1/projects", json={"name": f"Project {i}"})
+            assert ok.status_code == 201, ok.text
+
+        over = await ac.post("/api/v1/projects", json={"name": "One Too Many"})
+
+    app.dependency_overrides.clear()
+    assert over.status_code == 400
+    assert "maximum threshold" in over.json()["error"]["message"]

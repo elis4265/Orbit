@@ -45,7 +45,7 @@ describe('ProjectSelector — admin-only rename/delete rendering', () => {
     expect(screen.getByText(/new project/i)).toBeInTheDocument()
   })
 
-  it('hides "New project" when not canCreate (superuser-only, HW-37)', () => {
+  it('hides "New project" when not canCreate', () => {
     render(<ProjectSelector {...props({ canCreate: false })} />)
     openDropdown()
     expect(screen.queryByText(/new project/i)).not.toBeInTheDocument()

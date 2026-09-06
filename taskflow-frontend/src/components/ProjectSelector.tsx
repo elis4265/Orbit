@@ -14,7 +14,8 @@ interface Props {
   onRequestCreate?: () => void
   /** Rename/delete are admin-only server-side — render their controls only when true. */
   canManage: boolean
-  /** Project creation is superuser-only server-side (HW-37) — render "New project" only when true. */
+  /** Render "New project" only when true. Open to any authenticated user since HW-40;
+   *  kept as a prop so a future per-user creation permission has a seam. */
   canCreate: boolean
 }
 

@@ -24,8 +24,7 @@ def _clear_user_override():
 
 async def _seed(db_session, mode="guided", policy="any", with_statuses=True):
     user = User(email=f"cp_{uuid.uuid4().hex[:6]}@taskflow.io", hashed_password="x",
-                is_verified=True, is_active=True,
-                is_superuser=True)  # HW-37: one case creates a project via the API
+                is_verified=True, is_active=True)
     db_session.add(user)
     await db_session.flush()
     project = Project(name="Policy", owner_id=user.id, key="POL", next_sequence=1,
@@ -131,8 +130,7 @@ async def test_mode_switch_resets_policy(db_session):
 @pytest.mark.asyncio
 async def test_project_created_with_mode_seeds_policy_and_rules(db_session):
     """Regression: ProjectCreate.mode was silently dropped by the endpoint."""
-    user = User(email="modecreator@taskflow.io", hashed_password="x", is_verified=True, is_active=True,
-                is_superuser=True)  # HW-37: project creation is superuser-only
+    user = User(email="modecreator@taskflow.io", hashed_password="x", is_verified=True, is_active=True)
     db_session.add(user)
     await db_session.commit()
     app.dependency_overrides[get_current_user] = lambda: user
