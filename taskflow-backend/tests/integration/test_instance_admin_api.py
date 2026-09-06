@@ -194,8 +194,7 @@ async def test_superuser_flag_never_grants_project_access(db_session):
         _, headers = await _make_superuser(ac, db_session, "admin5@taskflow.io")
         pleb = await _register_and_verify(ac, db_session, "owner@taskflow.io")
 
-        # HW-37: plebs can no longer create projects via the API, and the point
-        # here is the read gate — seed the pleb's project directly instead.
+        # The point here is the read gate, not creation — seed the project directly.
         from app.repositories.project import ProjectRepository
         project = await ProjectRepository(db_session).create(
             {"key": "PRV", "name": "Private", "owner_id": pleb.id}

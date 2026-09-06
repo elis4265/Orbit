@@ -171,7 +171,7 @@ export default function TopBar({ activeProjectId, notifOpen, onToggleNotif, navO
           onRename={async (id, name) => { await renameProject.mutateAsync({ id, name }) }}
           onDelete={handleDeleteProject}
           canManage={canManage}
-          canCreate={!!user?.is_superuser}
+          canCreate
         />
       </div>
       {projects.length > 0 && (

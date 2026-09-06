@@ -56,8 +56,7 @@ class TaskFlowUser(HttpUser):
         # directly, bypassing the register→verify-email→login flow that requires SMTP.
         with self.client.post(
             "/api/v1/internal/test/create-user",
-            # HW-37: project creation is superuser-only; the scenario creates one.
-            json={"email": email, "password": password, "username": username, "is_superuser": True},
+            json={"email": email, "password": password, "username": username},
             headers={"X-Forwarded-For": self.fake_ip},
             name="/auth/register",
             catch_response=True,

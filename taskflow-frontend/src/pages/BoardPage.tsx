@@ -149,14 +149,13 @@ export default function BoardPage() {
   const autoOpenedCreateRef = useRef(false)
   // First run: a freshly registered user has no projects — open the create dialog
   // once so they land on a guided choice instead of a bare empty board.
-  // HW-37: creation is superuser-only, so everyone else gets the invite-me
-  // empty state instead of a dialog whose submit would 403.
+  // HW-40: creation is open to every authenticated user again.
   useEffect(() => {
-    if (!projectsLoading && projects.length === 0 && user?.is_superuser && !autoOpenedCreateRef.current) {
+    if (!projectsLoading && projects.length === 0 && !autoOpenedCreateRef.current) {
       autoOpenedCreateRef.current = true
       setCreateProjectOpen(true)
     }
-  }, [projectsLoading, projects.length, user?.is_superuser])
+  }, [projectsLoading, projects.length])
 
   const [showHelp, setShowHelp] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -1064,19 +1063,15 @@ export default function BoardPage() {
           <div>
             <p className="text-gray-200 font-medium">No projects yet</p>
             <p className="text-gray-500 text-sm mt-1">
-              {user?.is_superuser
-                ? 'Create your first project and choose how its workflow behaves.'
-                : 'Project creation is handled by your instance admin — ask them for an invite to get started.'}
+              Create your first project and choose how its workflow behaves.
             </p>
           </div>
-          {user?.is_superuser && (
-            <button
-              onClick={() => setCreateProjectOpen(true)}
-              className="flex items-center gap-2 text-sm bg-brand hover:bg-brand-hover text-white font-medium px-4 py-2 rounded-lg transition-colors"
-            >
-              <Plus size={16} /> Create project
-            </button>
-          )}
+          <button
+            onClick={() => setCreateProjectOpen(true)}
+            className="flex items-center gap-2 text-sm bg-brand hover:bg-brand-hover text-white font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            <Plus size={16} /> Create project
+          </button>
         </div>
       )
     }

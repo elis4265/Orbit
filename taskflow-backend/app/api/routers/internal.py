@@ -25,8 +25,8 @@ class TestUserRequest(BaseModel):
     email: str
     password: str
     username: str
-    # HW-37: project creation is superuser-only; load/e2e harnesses that create
-    # projects opt in here. Dev-only — the endpoint 404s outside development.
+    # Opt-in instance-admin flag for harnesses that exercise the /admin surface.
+    # Project creation does NOT need it (HW-40). Dev-only — 404s outside development.
     is_superuser: bool = False
 
 

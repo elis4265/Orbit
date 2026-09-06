@@ -172,7 +172,7 @@ export default function HelpPage() {
             </P>
             <Sub title="Basic navigation">
               <Ul items={[
-                <><strong className="text-gray-300">Project selector</strong> (top-left) — switch between projects. Creating projects is reserved for the instance admin; everyone else joins by invite.</>,
+                <><strong className="text-gray-300">Project selector</strong> (top-left) — switch between projects, or create a new one with <strong className="text-gray-200">New project</strong>.</>,
                 <><strong className="text-gray-300">Board tabs</strong> — each project can have multiple boards (e.g. Frontend, Backend). Switch between them at the top.</>,
                 <><strong className="text-gray-300">Views</strong> — toggle between Kanban, List, Calendar and Gantt using the toolbar icons.</>,
                 <><strong className="text-gray-300">Header icons</strong> — Members, Audit Log, Project Settings, Notifications, and your avatar are always in the top-right.</>,
@@ -181,7 +181,7 @@ export default function HelpPage() {
             <Sub title="Who can manage what">
               <Ul items={[
                 <>Renaming or deleting a <strong className="text-gray-200">project</strong>, and creating, renaming, or deleting <strong className="text-gray-200">boards</strong>, is for project <strong className="text-gray-200">admins</strong> — the controls only appear if you hold the admin role (or own the project).</>,
-                <>Creating a <strong className="text-gray-200">new project</strong> is for the <strong className="text-gray-200">instance admin</strong> only. If you just registered and see no projects, ask your admin for an invite.</>,
+                <>Creating a <strong className="text-gray-200">new project</strong> is open to any signed-in user, up to a limit of five projects you own. You can also be invited into projects owned by other people.</>,
               ]} />
             </Sub>
             <Sub title="Creating your first task">
@@ -1222,7 +1222,7 @@ valid = hmac.compare_digest(expected, request.headers["X-Orbit-Signature"])`}
               <P>The <strong className="text-gray-200">project admin</strong> role above is scoped to one project. Separately, a self-hosted Orbit instance has an optional <strong className="text-gray-200">instance admin</strong> (superuser) — the operator account named by the <Code>ORBIT_SUPERUSER_EMAIL</Code> environment variable at startup.</P>
               <Ul items={[
                 'Instance admins manage accounts on the whole instance: list and search users, deactivate/reactivate accounts, and send password-reset codes — from the Instance Admin page in the user menu (visible only to superusers).',
-                'Being an instance admin grants no project access. The operator cannot read tasks in projects they are not a member of.',
+                'Being an instance admin grants no project access. The operator cannot read tasks in projects they are not a member of, and it is not needed to create a project.',
                 'Deactivating an account blocks every sign-in path immediately — password, Google, API tokens, and existing sessions.',
                 'If ORBIT_SUPERUSER_EMAIL is not set, the instance simply has no admin surface.',
               ]} />

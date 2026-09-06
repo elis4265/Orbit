@@ -14,13 +14,13 @@ export function uniqueEmail(prefix: string): string {
 }
 
 /** Create a verified user via the dev-only internal endpoint.
- * Superuser by default: most specs create their own project (HW-37 made
- * creation superuser-only); pass false for a plain member/viewer persona. */
+ * An ordinary user: since HW-40 any authenticated user can create projects.
+ * Pass true only for a spec that exercises the instance-admin surface. */
 export async function createVerifiedUser(
   email: string,
   username: string,
   password = E2E_PASSWORD,
-  isSuperuser = true,
+  isSuperuser = false,
 ): Promise<string> {
   const ctx = await request.newContext()
   try {
